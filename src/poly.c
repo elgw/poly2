@@ -6,7 +6,15 @@
  * asserts that the input domain is regularly spaced
  */
 
-double * cbspline(double * y, int N, int f, int * np)
+
+// Forward declarations for non-exported functions
+static double * cbspline(double * y, int N, int f, int * np);
+static double * vec_interlace(double * A, double * B, size_t N);
+static double * vec_deinterlace(double * V, int stride, size_t N);
+static void vec_show(double * V, int n);
+static double d2(double * P0, double *P1);
+
+static double * cbspline(double * y, int N, int f, int * np)
   /* y input vector
    * N number of elements in y
    * f upsampling factor
@@ -81,7 +89,9 @@ double * cbspline(double * y, int N, int f, int * np)
 }
 
 
-double * vec_deinterlace(double * V, int stride, size_t N)
+
+
+static double * vec_deinterlace(double * V, int stride, size_t N)
 {
     double * D = malloc(N*sizeof(double));
     for(size_t kk = 0; kk<N; kk++)
@@ -91,7 +101,7 @@ double * vec_deinterlace(double * V, int stride, size_t N)
     return D;
 }
 
-double * vec_interlace(double * A, double * B, size_t N)
+static double * vec_interlace(double * A, double * B, size_t N)
 {
     double * V = malloc(2*N*sizeof(double));
     for(size_t kk = 0; kk<N; kk++)
@@ -102,7 +112,7 @@ double * vec_interlace(double * A, double * B, size_t N)
     return V;
 }
 
-void vec_show(double * V, int n)
+static void vec_show(double * V, int n)
 {
     for(int kk = 0; kk<n; kk++)
     {
@@ -121,7 +131,7 @@ void poly_print(FILE * fid, double * P, int n)
         {
             fprintf(fid, ", ");
         }
-        fprintf(fid, "[%f, %f]", P[2*kk], P[kk*kk+1 ]);
+        fprintf(fid, "[%f, %f]", P[2*kk], P[2*kk+1 ]);
     }
     fprintf(fid, "]\n");
     printf("Area(P) = %f\n", poly_area(P, n));
@@ -144,7 +154,7 @@ double poly_area(double * P, int n)
     return a/2.0;
 }
 
-double d2(double * P0, double *P1)
+static double d2(double * P0, double *P1)
 {
     return sqrt( pow(P0[0] - P1[0], 2) + pow(P0[1] - P1[1], 2));
 }
@@ -162,7 +172,6 @@ double poly_circ(double * P, int n)
     }
     return c;
 }
-
 
 
 double * poly_cbinterp(double * P, int n, int upsampling, int * N)
@@ -201,4 +210,104 @@ double * poly_cbinterp(double * P, int n, int upsampling, int * N)
     free(YY);
     return R;
 
+}
+
+double * poly_bbx(double * P, int n)
+{
+    if(n < 1)
+        return NULL;
+    double * bbx = malloc(4*sizeof(double));
+    double minx = P[0];
+    double maxx = P[0];
+    double miny = P[1];
+    double maxy = P[1];
+    for(int kk = 0; kk<n; kk++)
+    {
+        double x = P[2*kk];
+        double y = P[2*kk+1];
+
+        if(x > maxx)
+        {
+            maxx = x;
+        }
+        if(x < minx)
+        {
+            minx = x;
+        }
+        if(y>maxy)
+        {
+            maxy = y;
+        }
+        if(y<miny)
+        {
+            miny = y;
+        }
+    }
+    bbx[0] = minx;
+    bbx[1] = maxy;
+    bbx[2] = minx;
+    bbx[3] = maxy;
+    return bbx;
+
+}
+
+double coordscale(double x, double * bbx, double w, double padding)
+{
+    x -= bbx[0];
+    x /= (bbx[1]-bbx[0]);
+    x = x*(w-2*padding) + padding;
+    return x;
+}
+
+void poly_to_svg(double * P, int n, char * filename)
+{
+
+    int w = 512;
+    int h = 512;
+    double padding = 10;
+    double * bbx = poly_bbx(P, n);
+
+    cairo_surface_t *surface;
+    cairo_t *cr;
+    surface = cairo_svg_surface_create(filename, w, h);
+    // surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 390, 60);
+    cr = cairo_create(surface);
+
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+                           CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 20.0);
+    cairo_move_to(cr, 10.0, 20.0);
+char * caption = malloc(128);
+sprintf(caption, "%d", n);
+    cairo_show_text(cr, caption);
+free(caption);
+
+
+cairo_set_source_rgb(cr, 0, 0, 0);
+cairo_set_line_width(cr, 5);
+double xold = P[2*(n-1)];
+xold = coordscale(xold, bbx, (double) w, padding);
+double yold = P[2*(n-1)+1];
+yold = coordscale(yold, bbx+2, (double) h, padding);
+
+
+for(int kk = 0; kk < n; kk++)
+{
+    printf("%f %f\n", xold, yold);
+    cairo_move_to(cr, xold, yold);
+    double x = P[2*kk];
+    x = coordscale(x, bbx, (double) w, padding);
+    double y = P[2*kk+1];
+    y = coordscale(y, bbx+2, (double) h, padding);
+    cairo_line_to(cr, x, y);
+    xold = x;
+    yold = y;
+}
+cairo_stroke(cr);
+
+//cairo_surface_write_to_svg(surface, filename);
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
 }
