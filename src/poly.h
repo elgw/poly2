@@ -16,6 +16,8 @@ References:
 #include <assert.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
+#include <gsl/gsl_linalg.h>
 
 // Area for polygon with n vertices
 double poly_area(double * P, int n);
@@ -24,6 +26,14 @@ double poly_area(double * P, int n);
 double poly_circ(double * P, int n);
 
 void poly_print(FILE *, double * P, int n);
+
+/* Cubic spline interpolation of closed curve
+ * https://mathworld.wolfram.com/CubicSpline.html
+ *
+ * asserts that the input domain is regularly spaced
+ */
+
+double * cbspline(double * y, int N, int f, int * np);
 
 // TODO
 // Interpolate with max delta or to a certain number of points
