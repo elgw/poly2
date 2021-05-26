@@ -261,14 +261,23 @@ double poly_area(const double * P, int n)
     return a;
 }
 
-double * poly_moments(const double * P, int n)
+double * poly_cov(const double * P, int n)
 {
+    /* Covariance matrix.
+     * Calculated from the raw moments.
+     * u20 = M20/M00 - (M10/M00)^2
+     * u11 = M11/M00 - (M10*M01)/(M00)^2
+     * u02 = M02/M00 - (M01/M00)^2
+     * Where M00 is the same as the area
+     * M10 is com_x, M01 is com_y
+     */
     double * M = malloc(5*sizeof(double));
-    C = poly_com(P, n);
+    double * C = poly_com(P, n);
     M[0] = C[0];
     M[1] = C[1];
     free(C);
 
+    return M;
 }
 
 static double d2(const double * P0, const double *P1)

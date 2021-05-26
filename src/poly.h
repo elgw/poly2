@@ -41,10 +41,9 @@ double * poly_bbx(const double * P, int n);
 // Centre off mass
 double * poly_com(const double * P, int n);
 
-// 2nd order Moments
-// Returns comx, comy, xx, xy, yy
-// I.e. the moment tensor components at the end.
-double * poly_moments(const double * P, int n);
+// Covariance matrix
+// Returns comx, comy, c11, c12, c22
+double * poly_cov(const double * P, int n);
 
 //
 // MANIPULATION
