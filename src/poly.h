@@ -3,8 +3,12 @@
 Polygons with n vertices are stored with x and y coordinates interlaced,
 i.e. x0, y0, x1, x2, ... typically denoted P
 
-References:
-[Rourke] Joseph O'Rourke, Computational Geometry in C, Second Edition
+TODO:
+ - Malloc-free versions of all routines, using supplied memory buffers.
+ - 2nd order moments.
+ - Principal directions.
+ - Minimal bounding box (oriented according to the principal directions).
+
 */
 
 
@@ -36,6 +40,11 @@ double * poly_bbx(const double * P, int n);
 
 // Centre off mass
 double * poly_com(const double * P, int n);
+
+// 2nd order Moments
+// Returns comx, comy, xx, xy, yy
+// I.e. the moment tensor components at the end.
+double * poly_moments(const double * P, int n);
 
 //
 // MANIPULATION

@@ -214,8 +214,10 @@ double * poly_com(const double * P, int n)
 
 double poly_area_rourke(const double * P, int n)
 {
+
     // Rourke, Eq. 1.14
     // What we get by Greens formula in poly_area_green is more efficient
+    // [Rourke] Joseph O'Rourke, Computational Geometry in C, Second Edition
 
     if(n<3)
     {
@@ -259,6 +261,15 @@ double poly_area(const double * P, int n)
     return a;
 }
 
+double * poly_moments(const double * P, int n)
+{
+    double * M = malloc(5*sizeof(double));
+    C = poly_com(P, n);
+    M[0] = C[0];
+    M[1] = C[1];
+    free(C);
+
+}
 
 static double d2(const double * P0, const double *P1)
 {
