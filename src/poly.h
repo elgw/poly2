@@ -1,11 +1,10 @@
-/* Polygon processing
+/* Polygon processing/measurements
 
-Polygons are stored with x and y coordinates interlaced,
-i.e. x0, y0, x1, x2, ...
+Polygons with n vertices are stored with x and y coordinates interlaced,
+i.e. x0, y0, x1, x2, ... typically denoted P
 
 References:
 [Rourke] Joseph O'Rourke, Computational Geometry in C, Second Edition
-
 */
 
 
@@ -21,18 +20,34 @@ References:
 #include <cairo.h>
 #include <cairo-svg.h>
 
-// Area for polygon with n vertices
-double poly_area(double * P, int n);
+//
+// MEASUREMENTS
+//
+
+// Area for polygon
+double poly_area(const double * P, int n);
+
 // Circumference
 // Returns 0 if less than 3 points
-double poly_circ(double * P, int n);
+double poly_circ(const double * P, int n);
 
-double * poly_bbx(double * P, int n);
+// bounding box of polygon, minx, maxx, miny, maxy
+double * poly_bbx(const double * P, int n);
+
+// Centre off mass
+double * poly_com(const double * P, int n);
+
+//
+// MANIPULATION
+//
+
+// Translation
+void poly_translate(double * P, int n, double dx, double dy);
 
 // Cubic spline interpolation
-double * poly_cbinterp(double * P, int n, int upsampling, int * N);
+double * poly_cbinterp(const double * P, int n, int upsampling, int * N);
 
-void poly_print(FILE *, double * P, int n);
+void poly_print(FILE *, const double * P, int n);
 
 void poly_to_svg(double * P, int n, char *);
 
@@ -41,8 +56,6 @@ void poly_to_svg(double * P, int n, char *);
  *
  * asserts that the input domain is regularly spaced
  */
-
-
 
 // TODO
 // Interpolate with max delta or to a certain number of points

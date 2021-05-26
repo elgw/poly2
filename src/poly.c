@@ -8,13 +8,22 @@
 
 
 // Forward declarations for non-exported functions
-static double * cbspline(double * y, int N, int f, int * np);
-static double * vec_interlace(double * A, double * B, size_t N);
-static double * vec_deinterlace(double * V, int stride, size_t N);
-static void vec_show(double * V, int n);
-static double d2(double * P0, double *P1);
+static double * cbspline(const double * y, int N, int f, int * np);
+static double * vec_interlace(const double * A, double * B, size_t N);
+static double * vec_deinterlace(const double * V, int stride, size_t N);
+static void vec_show(const double * V, int n);
+static double d2(const double * P0, const double *P1);
 
-static double * cbspline(double * y, int N, int f, int * np)
+void poly_translate(double * P, int n, double dx, double dy)
+{
+    for(int kk = 0; kk<n; kk++)
+    {
+        P[2*kk] += dx;
+        P[2*kk+1] += dy;
+    }
+}
+
+static double * cbspline(const double * y, int N, int f, int * np)
   /* y input vector
    * N number of elements in y
    * f upsampling factor
@@ -57,7 +66,7 @@ static double * cbspline(double * y, int N, int f, int * np)
   gsl_vector_free(gb);
   gsl_vector_free(gx);
 
-  double * a = y;
+  const double * a = y;
   double * b = D;
   double * c = malloc(N*sizeof(double));
   for(int kk = 0; kk<N; kk++)
@@ -89,9 +98,7 @@ static double * cbspline(double * y, int N, int f, int * np)
 }
 
 
-
-
-static double * vec_deinterlace(double * V, int stride, size_t N)
+static double * vec_deinterlace(const double * V, int stride, size_t N)
 {
     double * D = malloc(N*sizeof(double));
     for(size_t kk = 0; kk<N; kk++)
@@ -101,7 +108,7 @@ static double * vec_deinterlace(double * V, int stride, size_t N)
     return D;
 }
 
-static double * vec_interlace(double * A, double * B, size_t N)
+static double * vec_interlace(const double * A, double * B, size_t N)
 {
     double * V = malloc(2*N*sizeof(double));
     for(size_t kk = 0; kk<N; kk++)
@@ -112,7 +119,7 @@ static double * vec_interlace(double * A, double * B, size_t N)
     return V;
 }
 
-static void vec_show(double * V, int n)
+static void vec_show(const double * V, int n)
 {
     for(int kk = 0; kk<n; kk++)
     {
@@ -122,14 +129,14 @@ static void vec_show(double * V, int n)
 }
 
 
-void poly_print(FILE * fid, double * P, int n)
+void poly_print(FILE * fid, const double * P, int n)
 {
     fprintf(fid, "P=[");
     for(int kk = 0; kk<n; kk++)
     {
         if(kk > 0)
         {
-            fprintf(fid, ", ");
+            fprintf(fid, "; ");
         }
         fprintf(fid, "[%f, %f]", P[2*kk], P[2*kk+1 ]);
     }
@@ -138,28 +145,127 @@ void poly_print(FILE * fid, double * P, int n)
     printf("Circ(P) = %f\n", poly_circ(P, n));
 }
 
-double poly_area(double * P, int n)
+
+void com_accumulate(double * com, const double * p, const double * q)
+{
+    // Centre of mass, contour integral between p and q
+    // Using Greens formula
+    // for x:
+    // dw = x dx dy
+    // w = -1/2 xy dx
+
+    // for y
+    // dw = y dx dy
+    // w = -1/2 xy dy
+
+    double px = p[0];
+    double py = p[1];
+    double qx = q[0];
+    double qy = q[1];
+    double dx = qx - px;
+    double dy = qy - py;
+
+    double alpha = px*py;
+    double beta = dx*py + dy*px;
+    double gamma = dx*dy;
+
+    double comx = -dx*(alpha + beta/2.0 + gamma/3.0);
+    double comy = dy*(alpha + beta/2.0 + gamma/3.0);
+
+    printf("(%f,%f) -> (%f, %f) com: (%f, %f)\n", p[0], p[1], q[0], q[1], comx, comy);
+
+    com[0] += comx;
+    com[1] += comy;
+}
+
+double * poly_com(const double * P, int n)
+{
+    if(n == 0)
+    {
+        return NULL;
+    }
+    double * cm = malloc(2*sizeof(double));
+    cm[0] = 0; cm[1] = 0;
+    if(n < 3)
+    {
+        for(int kk = 0; kk<n; kk++)
+        {
+            cm[0] += P[2*kk];
+            cm[1] += P[2*kk+1];
+        }
+        cm[0] /= (double) n;
+        cm[1] /= (double) n;
+        return cm;
+    }
+
+    const double * p = P + (2*n-2);
+    const double * q = P;
+
+    com_accumulate(cm, p, q);
+    for(int kk = 0; kk+1<n; kk++)
+    {
+        q = P + 2*(kk+1);
+        p = P + 2*kk;
+        com_accumulate(cm, p, q);
+    }
+
+    return cm;
+}
+
+double poly_area_rourke(const double * P, int n)
 {
     // Rourke, Eq. 1.14
+    // What we get by Greens formula in poly_area_green is more efficient
+
     if(n<3)
+    {
         return 0;
+    }
 
     double a = (P[2*(n-1)] + P[0])*(P[1]-P[2*(n-1)+1]);
 
-    for(int kk = 0; kk+1<n; kk++)
+    for(int kk = 0; kk+1 < n; kk++)
     {
-        a += (P[kk] + P[kk+2])*(P[kk+3]-P[kk+1]);
+        a += (P[2*kk] + P[2*kk+2])*(P[2*kk+3]-P[2*kk+1]);
     }
+    a /= 2.0;
+    assert( fabs(a - poly_area(P, n)) < 1e-6);
+    printf("a = %f, ag = %f\n", a, poly_area(P,n));
 
-    return a/2.0;
+    return a;
 }
 
-static double d2(double * P0, double *P1)
+double poly_area(const double * P, int n)
+{
+    // From Greens formula
+    if(n<3)
+    {
+        return 0;
+    }
+
+    const double * p = P + (2*n-2);
+    const double * q = P;
+    double a = p[0]*q[1] - q[0]*p[1];
+
+    for(int kk = 0; kk+1<n; kk++)
+    {
+        q = P + 2*(kk+1);
+        p = P + 2*kk;
+        a += p[0]*q[1] - q[0]*p[1];
+    }
+
+    a /= 2.0;
+
+    return a;
+}
+
+
+static double d2(const double * P0, const double *P1)
 {
     return sqrt( pow(P0[0] - P1[0], 2) + pow(P0[1] - P1[1], 2));
 }
 
-double poly_circ(double * P, int n)
+double poly_circ(const double * P, int n)
 {
     if(n<3)
     {
@@ -174,7 +280,7 @@ double poly_circ(double * P, int n)
 }
 
 
-double * poly_cbinterp(double * P, int n, int upsampling, int * N)
+double * poly_cbinterp(const double * P, int n, int upsampling, int * N)
 /* Interpolate the points in the polygon P
  * returns an interlaced array, x0, y0, x1, y1, ... with N[0] points
  * N[0] is approximately upsampling * n
@@ -212,7 +318,7 @@ double * poly_cbinterp(double * P, int n, int upsampling, int * N)
 
 }
 
-double * poly_bbx(double * P, int n)
+double * poly_bbx(const double * P, int n)
 {
     if(n < 1)
         return NULL;

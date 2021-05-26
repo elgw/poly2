@@ -55,9 +55,32 @@ void poly_cbinter_ut()
     return;
 }
 
+void poly_com_ut()
+{
+    printf("-- poly_com_ut\n");
+    int n = 0;
+    double * P = new_square(&n);
+    poly_print(stdout, P, n);
+    double * C = poly_com(P, n);
+    printf("Com: (%f, %f)\n", C[0], C[1]);
+    // Translate in x -- com_y does not change
+    printf("Translating by (0, 0.2)\n");
+    poly_translate(P, n, 0, .2);
+    poly_print(stdout, P, n);
+    poly_to_svg(P, n, "trans_square.svg");
+    free(C);
+    C = poly_com(P, n);
+    printf("Com: (%f, %f)\n", C[0], C[1]);
+    // Translate in y -- com_x does not change
+    // Rotate around com -- com does not change
+    free(C);
+    free(P);
+}
+
 int main()
 {
     poly_area_ut();
     poly_cbinter_ut();
+    poly_com_ut();
     return 0;
 }
