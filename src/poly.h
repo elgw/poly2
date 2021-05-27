@@ -51,6 +51,8 @@ double * poly_cov(const double * P, int n);
 
 // Translation
 void poly_translate(double * P, int n, double dx, double dy);
+// Rotation around (x0, y0)
+void poly_rotate(double * P, int n, double x0, double y0, double theta);
 
 // Cubic spline interpolation
 double * poly_cbinterp(const double * P, int n, int upsampling, int * N);

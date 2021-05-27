@@ -77,10 +77,34 @@ void poly_com_ut()
     free(P);
 }
 
+void poly_cov_ut()
+{
+    printf("-- poly_cov_ut\n");
+    int n = 0;
+    double * P = new_square(&n);
+    poly_print(stdout, P, n);
+    double * C = poly_cov(P, n);
+    printf("  - Translating by (.1, .2)\n");
+    poly_translate(P, n, .1, .2);
+    C = poly_cov(P, n);
+    printf("  - Centering\n");
+    double * com = poly_com(P, n);
+    poly_translate(P, n, -com[0], -com[1]);
+    free(com);
+    C = poly_cov(P, n);
+    printf("  - Rotating\n");
+    poly_rotate(P, n, 0.0, 0.0, 0.2);
+    poly_print(stdout, P, n);
+    C = poly_cov(P, n);
+    poly_to_svg(P, n, "temp.svg");
+    free(P);
+}
+
 int main()
 {
     poly_area_ut();
     poly_cbinter_ut();
     poly_com_ut();
+    poly_cov_ut();
     return 0;
 }
