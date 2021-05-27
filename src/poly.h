@@ -53,6 +53,7 @@ poly_props * poly_measure(const double * P, int n);
 void poly_props_free(poly_props**);
 void poly_props_print(FILE * fout, poly_props * props);
 
+
 // Area for polygon
 double poly_area(const double * P, int n);
 
@@ -78,6 +79,9 @@ double poly_orientation(const double * P, int n);
 //
 // MANIPULATION
 //
+
+// Reverse the vertices in P
+void poly_reverse(double * P, int n);
 
 // Multiply by v
 void poly_mult(double * P, int n, double vx, double vy);

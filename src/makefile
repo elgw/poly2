@@ -9,3 +9,6 @@ poly_ut:
 
 poly_bench:
 	gcc $(cflags) poly_ut.c poly.c $(ldflags) -o poly_bench
+
+tcga_test:
+	gcc $(cflags) tcga_test.c poly.c $(ldflags) -o tcga_test

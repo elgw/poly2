@@ -81,6 +81,12 @@ void poly_props_print(FILE * fout, poly_props * props)
     return;
 }
 
+void poly_reverse(double * P, int n)
+{
+    // Reverse the order in P
+    assert(0);
+}
+
 poly_props * poly_measure(const double * P, int n)
 {
     poly_props * props = poly_props_new();

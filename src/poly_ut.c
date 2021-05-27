@@ -147,6 +147,14 @@ void benchmark()
     clock_gettime(CLOCK_REALTIME, &tend);
     double dt = timespec_diff(&tend, &tstart);
     printf("Took: %f s, i.e. %f polygons / s\n", dt, (double) N / dt);
+#ifdef NDEBUG
+    FILE * fout = fopen("benchmark.txt", "a");
+    time_t now;
+    time(&now);
+    fprintf(fout, "%s\n", ctime(&now));
+    fprintf(fout, "Took: %f s, i.e. %f polygons / s\n", dt, (double) N / dt);
+    fclose(fout);
+    #endif
 }
 
 int main(int argc, char ** argv)
