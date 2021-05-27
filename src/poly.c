@@ -11,7 +11,7 @@
 static double * cbspline(const double * y, int N, int f, int * np);
 static double * vec_interlace(const double * A, double * B, size_t N);
 static double * vec_deinterlace(const double * V, int stride, size_t N);
-static void vec_show(const double * V, int n);
+//static void vec_show(const double * V, int n);
 static double d2(const double * P0, const double *P1);
 static void eigenvector_sym_22(double a, double b, double c, double l, double * v0, double * v1);
 static void eigenvalue_sym_22(double a, double b, double c, double * l0, double * l1);
@@ -48,36 +48,41 @@ void poly_props_print(FILE * fout, poly_props * props)
     fprintf(fout, "-- Polygon properties -- \n");
     if(props->measured != 1)
     {
-        fprintf(fout, "No measurements recorded\n");
+        fprintf(fout, "  ! No measurements recorded\n");
         return;
     }
-    fprintf(fout, "Vertices: %d\n", props->nVertices);
-    fprintf(fout, "Area: %f\n", props->Area);
+    fprintf(fout, "  Vertices: %d\n", props->nVertices);
+    fprintf(fout, "  Area: %f\n", props->Area);
     if(props->Centroid != NULL)
     {
-    fprintf(fout, "Centroid: (%f, %f)\n",
+    fprintf(fout, "  Centroid: (%f, %f)\n",
             props->Centroid[0], props->Centroid[1]);
     }
     if(props->BoundingBox != NULL)
     {
-    fprintf(fout, "BoundingBox: (%f, %f, %f, %f)\n",
+    fprintf(fout, "  BoundingBox: (%f, %f, %f, %f)\n",
             props->BoundingBox[0], props->BoundingBox[1],
             props->BoundingBox[2], props->BoundingBox[3]);
     }
-    fprintf(fout, "MajorAxisLength: %f\n", props->MajorAxisLength);
-    fprintf(fout, "MinorAxisLength: %f\n", props->MinorAxisLength);
-    fprintf(fout, "Eccentricity: %f\n", props->Eccentricity);
+    assert(props->Centroid[0] >= props->BoundingBox[0]);
+    assert(props->Centroid[0] <= props->BoundingBox[1]);
+    assert(props->Centroid[1] >= props->BoundingBox[2]);
+    assert(props->Centroid[1] <= props->BoundingBox[3]);
+
+    fprintf(fout, "  MajorAxisLength: %f\n", props->MajorAxisLength);
+    fprintf(fout, "  MinorAxisLength: %f\n", props->MinorAxisLength);
+    fprintf(fout, "  Eccentricity: %f\n", props->Eccentricity);
 
     double ori1 = props->Orientation;
     double ori2 = ori1 + M_PI;
 
-    fprintf(fout, "Orientation: %f (or %f)\n", ori1, ori2);
+    fprintf(fout, "  Orientation: %f (or %f)\n", ori1, ori2);
 
-    fprintf(fout, " TODO: ConvexArea: %f\n", props->ConvexArea);
-    fprintf(fout, "Circularity: %f\n", props->Circularity);
-    fprintf(fout, "EquivDiameter: %f\n", props->EquivDiameter);
-    fprintf(fout, " TODO: Solidity: %f\n", props->Solidity);
-    fprintf(fout, "Perimeter: %f\n", props->Perimeter);
+    fprintf(fout, "  TODO: ConvexArea: %f\n", props->ConvexArea);
+    fprintf(fout, "  Circularity: %f\n", props->Circularity);
+    fprintf(fout, "  EquivDiameter: %f\n", props->EquivDiameter);
+    fprintf(fout, "  TODO: Solidity: %f\n", props->Solidity);
+    fprintf(fout, "  Perimeter: %f\n", props->Perimeter);
     return;
 }
 
@@ -113,7 +118,7 @@ poly_props * poly_measure(const double * P, int n)
     props->EquivDiameter = sqrt(4.0*props->Area/M_PI);
     //props->Solidity = props->Area/props->ConvexArea;
     double * COV = poly_cov(P, n);
-    printf("Cov = [%f, %f; %f, %f]\n", COV[0], COV[1], COV[1], COV[2]);
+    //printf("Cov = [%f, %f; %f, %f]\n", COV[0], COV[1], COV[1], COV[2]);
     props->Orientation = poly_orientation_with_COV(COV);
     props->Centroid = poly_com(P, n);
 
@@ -262,6 +267,7 @@ static double * vec_interlace(const double * A, double * B, size_t N)
     return V;
 }
 
+/*
 static void vec_show(const double * V, int n)
 {
     for(int kk = 0; kk<n; kk++)
@@ -270,7 +276,7 @@ static void vec_show(const double * V, int n)
     }
     printf("\n");
 }
-
+*/
 
 void poly_print(FILE * fid, const double * P, int n)
 {
@@ -307,9 +313,6 @@ void com_accumulate(double * com, const double * p, const double * q)
     double qy = q[1];
     double dx = qx - px;
     double dy = qy - py;
-
-    double Dx = qx - px;
-    double Dy = qy - py;
 
     double alpha = px*py;
     double beta = dx*py + dy*px;
@@ -570,7 +573,7 @@ double * poly_cov(const double * P, int n)
     double M02 = poly_M02(P, n);
     double M11 = poly_M11(P, n);
 
-    if(1){
+    if(0){
     printf(" -- Raw moments:\n");
     printf("M00=%f\n", M00);
     printf("M10=%f, M01=%f\n", M10, M01);
@@ -580,7 +583,7 @@ double * poly_cov(const double * P, int n)
     double u11 = M11 - M10*M01/M00;
     double u20 = M20 - M10/M00*M10;
     double u02 = M02 - M01/M00*M01;
-    if(1){
+    if(0){
     printf(" -- Centered moments:\n");
     printf("u20=%f, u11=%f, u02=%f\n", u20, u11, u02);
     }
