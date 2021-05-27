@@ -84,7 +84,18 @@ void poly_props_print(FILE * fout, poly_props * props)
 void poly_reverse(double * P, int n)
 {
     // Reverse the order in P
-    assert(0);
+    int mid = n/2;
+    for(int from = 0; from < mid; from++)
+    {
+        int to = n-from-1;
+        double t0 = P[2*to];
+        double t1 = P[2*to + 1];
+        P[2*to] = P[2*from];
+        P[2*to + 1] = P[2*from + 1];
+        P[2*from] = t0;
+        P[2*from + 1] = t1;
+    }
+    return;
 }
 
 poly_props * poly_measure(const double * P, int n)
@@ -102,7 +113,10 @@ poly_props * poly_measure(const double * P, int n)
     props->EquivDiameter = sqrt(4.0*props->Area/M_PI);
     //props->Solidity = props->Area/props->ConvexArea;
     double * COV = poly_cov(P, n);
+    printf("Cov = [%f, %f; %f, %f]\n", COV[0], COV[1], COV[1], COV[2]);
     props->Orientation = poly_orientation_with_COV(COV);
+    props->Centroid = poly_com(P, n);
+
     double l0, l1;
     eigenvalue_sym_22(COV[0], COV[1], COV[2], &l0, &l1);
     props->MajorAxisLength = 4*sqrt(l0);
@@ -296,16 +310,12 @@ void com_accumulate(double * com, const double * p, const double * q)
 
     double Dx = qx - px;
     double Dy = qy - py;
-    double c0 = px*px;
-    double c1 = -2*px*Dx;
-    double c2 = Dx*Dx;
 
     double alpha = px*py;
     double beta = dx*py + dy*px;
     double gamma = dx*dy;
 
-    //double comx = -dx*(alpha + beta/2.0 + gamma/3.0);
-    double comx = 1/2.0*Dy*(c0 + c1/2.0 + c2/3.0);
+    double comx = -dx*(alpha + beta/2.0 + gamma/3.0);
     double comy = dy*(alpha + beta/2.0 + gamma/3.0);
 
     //printf("(%f,%f) -> (%f, %f) com: (%f, %f)\n", p[0], p[1], q[0], q[1], comx, comy);
@@ -406,8 +416,8 @@ double * poly_com(const double * P, int n)
     com_accumulate(cm, p, q);
     for(int kk = 0; kk+1<n; kk++)
     {
-        q = P + 2*(kk+1);
         p = P + 2*kk;
+        q = P + 2*(kk+1);
         com_accumulate(cm, p, q);
     }
     double a = poly_area(P, n);
@@ -560,7 +570,7 @@ double * poly_cov(const double * P, int n)
     double M02 = poly_M02(P, n);
     double M11 = poly_M11(P, n);
 
-    if(0){
+    if(1){
     printf(" -- Raw moments:\n");
     printf("M00=%f\n", M00);
     printf("M10=%f, M01=%f\n", M10, M01);
@@ -570,7 +580,7 @@ double * poly_cov(const double * P, int n)
     double u11 = M11 - M10*M01/M00;
     double u20 = M20 - M10/M00*M10;
     double u02 = M02 - M01/M00*M01;
-    if(0){
+    if(1){
     printf(" -- Centered moments:\n");
     printf("u20=%f, u11=%f, u02=%f\n", u20, u11, u02);
     }
@@ -725,18 +735,18 @@ double * poly_bbx(const double * P, int n)
         {
             minx = x;
         }
-        if(y>maxy)
+        if(y > maxy)
         {
             maxy = y;
         }
-        if(y<miny)
+        if(y < miny)
         {
             miny = y;
         }
     }
     bbx[0] = minx;
-    bbx[1] = maxy;
-    bbx[2] = minx;
+    bbx[1] = maxx;
+    bbx[2] = miny;
     bbx[3] = maxy;
     return bbx;
 
