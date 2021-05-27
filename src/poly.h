@@ -5,10 +5,10 @@ i.e. x0, y0, x1, x2, ... typically denoted P
 
 TODO:
  - Malloc-free versions of all routines, using supplied memory buffers.
- - 2nd order moments.
  - Principal directions.
  - Minimal bounding box (oriented according to the principal directions).
-
+ - For convex hull, consider Graham and Yao: https://doi.org/10.1016/0196-6774(83)90013-5
+ - ...
 */
 
 
@@ -23,33 +23,35 @@ TODO:
 #include <gsl/gsl_linalg.h>
 #include <cairo.h>
 #include <cairo-svg.h>
+#include <fontconfig/fontconfig.h>
 
 typedef struct{
+    int nVertices;
     double Area;
     double * Centroid;
     double * BoundingBox;
     double MajorAxisLength;
     double MinorAxisLength;
     double Eccentricity;
-    double Orientation;
+    double Orientation; // Using atan2 on principal axes
     //double * ConvexHull;
     double ConvexArea;
     double Circularity;
     double EquivDiameter;
     double Solidity;
     double Perimeter;
+
+    int measured;
 } poly_props;
 
 //
 // MEASUREMENTS
 //
 
-// "High Level" interface, i.e. measure most stuff in a go
+// "High Level" interface, i.e. measure most stuff in one go
 poly_props * poly_measure(const double * P, int n);
-poly_props_free(poly_props**);
+void poly_props_free(poly_props**);
 void poly_props_print(FILE * fout, poly_props * props);
-
-
 
 // Area for polygon
 double poly_area(const double * P, int n);
@@ -68,12 +70,17 @@ double * poly_com(const double * P, int n);
 // Returns comx, comy, c11, c12, c22
 double * poly_cov(const double * P, int n);
 
+
+// Extracts the covariance matrix and gets orientation
+// from eigenvectors
+double poly_orientation(const double * P, int n);
+
 //
 // MANIPULATION
 //
 
 // Multiply by v
-void poly_mult(double * P, int n, double v);
+void poly_mult(double * P, int n, double vx, double vy);
 
 // Translation
 void poly_translate(double * P, int n, double dx, double dy);

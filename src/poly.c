@@ -13,39 +13,70 @@ static double * vec_interlace(const double * A, double * B, size_t N);
 static double * vec_deinterlace(const double * V, int stride, size_t N);
 static void vec_show(const double * V, int n);
 static double d2(const double * P0, const double *P1);
+static void eigenvector_sym_22(double a, double b, double c, double l, double * v0, double * v1);
+static void eigenvalue_sym_22(double a, double b, double c, double * l0, double * l1);
+double poly_orientation_with_COV(double * COV);
 
 poly_props * poly_props_new()
 {
     poly_props * props = malloc(sizeof(poly_props));
-    props->Centroid = malloc(2*sizeof(double));
-    props->BoundingBox = malloc(4*sizeof(double));
+    props->Centroid = NULL;
+    props->BoundingBox = NULL;
+    props->measured = 0;
+    props->ConvexArea = -1;
+    props->Solidity = -1;
+    return props;
 }
 
-poly_props_free(poly_props ** PP)
+void poly_props_free(poly_props ** PP)
 {
     poly_props * P = PP[0];
-    free(P->Centroid);
-    free(P->BoundingBox);
+    if(P->Centroid != NULL)
+    {
+        free(P->Centroid);
+    }
+    if(P->BoundingBox != NULL)
+    {
+        free(P->BoundingBox);
+    }
     free(PP[0]);
     PP[0] = NULL;
 }
 
 void poly_props_print(FILE * fout, poly_props * props)
 {
+    fprintf(fout, "-- Polygon properties -- \n");
+    if(props->measured != 1)
+    {
+        fprintf(fout, "No measurements recorded\n");
+        return;
+    }
+    fprintf(fout, "Vertices: %d\n", props->nVertices);
     fprintf(fout, "Area: %f\n", props->Area);
+    if(props->Centroid != NULL)
+    {
     fprintf(fout, "Centroid: (%f, %f)\n",
             props->Centroid[0], props->Centroid[1]);
+    }
+    if(props->BoundingBox != NULL)
+    {
     fprintf(fout, "BoundingBox: (%f, %f, %f, %f)\n",
             props->BoundingBox[0], props->BoundingBox[1],
             props->BoundingBox[2], props->BoundingBox[3]);
-    fprintf(fout, "MajorAxisLength: %f", props->MajorAxisLength);
-    fprintf(fout, "MinorAxisLength: %f", props->MinorAxisLength);
+    }
+    fprintf(fout, "MajorAxisLength: %f\n", props->MajorAxisLength);
+    fprintf(fout, "MinorAxisLength: %f\n", props->MinorAxisLength);
     fprintf(fout, "Eccentricity: %f\n", props->Eccentricity);
-    fprintf(fout, "Orientation: %f\n", props->Orientation);
-    fprintf(fout, "ConvexArea: %f\n", props->ConvexArea);
+
+    double ori1 = props->Orientation;
+    double ori2 = ori1 + M_PI;
+
+    fprintf(fout, "Orientation: %f (or %f)\n", ori1, ori2);
+
+    fprintf(fout, " TODO: ConvexArea: %f\n", props->ConvexArea);
     fprintf(fout, "Circularity: %f\n", props->Circularity);
     fprintf(fout, "EquivDiameter: %f\n", props->EquivDiameter);
-    fprintf(fout, "Solidity: %f\n", props->Solidity);
+    fprintf(fout, " TODO: Solidity: %f\n", props->Solidity);
     fprintf(fout, "Perimeter: %f\n", props->Perimeter);
     return;
 }
@@ -53,17 +84,35 @@ void poly_props_print(FILE * fout, poly_props * props)
 poly_props * poly_measure(const double * P, int n)
 {
     poly_props * props = poly_props_new();
+    props->measured = 1;
+    props->nVertices = n;
     props->Area = poly_area(P, n);
     props->Perimeter = poly_circ(P, n);
     // etc ...
+    props->BoundingBox = poly_bbx(P, n);
+
+
+    props->Circularity = (4.0*props->Area*M_PI)/pow(props->Perimeter, 2);
+    props->EquivDiameter = sqrt(4.0*props->Area/M_PI);
+    //props->Solidity = props->Area/props->ConvexArea;
+    double * COV = poly_cov(P, n);
+    props->Orientation = poly_orientation_with_COV(COV);
+    double l0, l1;
+    eigenvalue_sym_22(COV[0], COV[1], COV[2], &l0, &l1);
+    props->MajorAxisLength = 4*sqrt(l0);
+    props->MinorAxisLength = 4*sqrt(l1);
+    props->Eccentricity = sqrt(1-l1/l0);
+    free(COV);
+    return props;
 }
 
 // Multiply by the value v
-void poly_mult(double * P, int n, double v)
+void poly_mult(double * P, int n, double vx, double vy)
 {
-    for(int kk = 0; kk<2*n; kk++)
+    for(int kk = 0; kk<n; kk++)
     {
-        P[kk] *= v;
+        P[2*kk] *= vx;
+        P[2*kk+1] *= vy;
     }
 }
 
@@ -215,8 +264,8 @@ void poly_print(FILE * fid, const double * P, int n)
         fprintf(fid, "[%f, %f]", P[2*kk], P[2*kk+1 ]);
     }
     fprintf(fid, "]\n");
-    printf("Area(P) = %f\n", poly_area(P, n));
-    printf("Circ(P) = %f\n", poly_circ(P, n));
+    //printf("Area(P) = %f\n", poly_area(P, n));
+    //printf("Circ(P) = %f\n", poly_circ(P, n));
 }
 
 
@@ -253,7 +302,7 @@ void com_accumulate(double * com, const double * p, const double * q)
     double comx = 1/2.0*Dy*(c0 + c1/2.0 + c2/3.0);
     double comy = dy*(alpha + beta/2.0 + gamma/3.0);
 
-    printf("(%f,%f) -> (%f, %f) com: (%f, %f)\n", p[0], p[1], q[0], q[1], comx, comy);
+    //printf("(%f,%f) -> (%f, %f) com: (%f, %f)\n", p[0], p[1], q[0], q[1], comx, comy);
 
     com[0] += comx;
     com[1] += comy;
@@ -505,14 +554,89 @@ double * poly_cov(const double * P, int n)
     double M02 = poly_M02(P, n);
     double M11 = poly_M11(P, n);
 
-    printf("M00=%f, M10=%f, M01=%f\n", M00, M10, M01);
+    if(0){
+    printf(" -- Raw moments:\n");
+    printf("M00=%f\n", M00);
+    printf("M10=%f, M01=%f\n", M10, M01);
     printf("M20=%f, M11=%f, M02=%f\n", M20, M11, M02);
-    double m20 = M20/M00 - pow(M10/M00, 2);
-    double m11 = M11/M00 - M10*M01/pow(M00, 2);
-    double m02 = M02/M00 - pow(M01/M00, 2);
-    printf("m20=%f, m11=%f, m02=%f\n", m20, m11, m02);
+    }
 
-    return NULL;
+    double u11 = M11 - M10*M01/M00;
+    double u20 = M20 - M10/M00*M10;
+    double u02 = M02 - M01/M00*M01;
+    if(0){
+    printf(" -- Centered moments:\n");
+    printf("u20=%f, u11=%f, u02=%f\n", u20, u11, u02);
+    }
+    double * COV = malloc(3*sizeof(double));
+    COV[0] = u20/M00;
+    COV[1] = u11/M00;
+    COV[2] = u02/M00;
+    return COV;
+}
+
+
+
+static void eigenvector_sym_22(double a, double b, double c, double l, double * v0, double * v1)
+{
+    // Eigenvector to the matrix [a b; b c] corresponding
+    // to eigenvalue l
+    double vx = b / sqrt(b*b + pow(l-a,2));
+    double vy = b / sqrt(b*b + pow(l-c,2));
+    double n = sqrt(pow(vx, 2) + pow(vy, 2));
+    v0[0] = vx/n;
+    v1[0] = vy/n;
+    return;
+}
+
+static void eigenvalue_sym_22(double a, double b, double c, double * l0, double * l1)
+{
+    // Eigenvalues to the matrix [a b; b c] corresponding
+    // l0 > l1 since q > 0
+    double p = (a+c)/2.0;
+    double q = 0.5*sqrt( pow(a-c, 2) + 4*pow(b, 2));
+    l0[0] = p + q;
+    l1[0] = p - q;
+}
+
+
+
+double poly_orientation_with_COV(double * COV)
+{
+    double a = COV[0];
+    double b = COV[1];
+    double c = COV[2];
+
+
+    //printf("COV = [[%f, %f]; [%f, %f]]\n", a, b, b, c);
+    double l0, l1;
+    eigenvalue_sym_22(a, b, c, &l0, &l1);
+    //printf("l0 = %f, l1 = %f\n", l0, l1);
+
+    //printf("MajorAxisLength: %f\n", 4*sqrt(l0));
+    //printf("MinorAxisLength: %f\n", 4*sqrt(l1));
+
+    double v0, v1;
+    eigenvector_sym_22(a, b, c, l0, &v0, &v1);
+    double w0, w1;
+    eigenvector_sym_22(a, b, c, l1, &w0, &w1);
+
+    //printf("v0 = [%f, %f]\n", v0, v1);
+    //printf("v1 = [%f, %f]\n", w0, w1);
+
+    double orientation = atan2(v1, v0);
+    //printf("Orientation: %f\n", orientation);
+
+    return orientation;
+}
+
+double poly_orientation(const double * P, int n)
+{
+    double * COV = poly_cov(P, n);
+    double orientation = poly_orientation_with_COV(COV);
+    free(COV);
+    return orientation;
+
 }
 
 static double d2(const double * P0, const double *P1)
@@ -671,4 +795,8 @@ cairo_stroke(cr);
 
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
+    free(bbx);
+    // For clean valgrind
+    FcFini();
+    cairo_debug_reset_static_data();
 }

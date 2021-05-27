@@ -84,27 +84,80 @@ void poly_cov_ut()
     printf("-- poly_cov_ut\n");
     int n = 0;
     double * P = new_square(&n);
-    poly_mult(P, n, 100);
+    poly_mult(P, n, 100.0, 100.0);
     poly_print(stdout, P, n);
     double * C = poly_cov(P, n);
     printf("  - Translating by (.1, .2)\n");
+    free(C);
     poly_translate(P, n, .1, .2);
     C = poly_cov(P, n);
+    free(C);
     printf("  - Centering\n");
     double * com = poly_com(P, n);
     poly_translate(P, n, -com[0], -com[1]);
     free(com);
     C = poly_cov(P, n);
-    printf("  - Rotating\n");
+    free(C);
+    printf("  - Rotating by 0.2\n");
     poly_rotate(P, n, 0.0, 0.0, 0.2);
     poly_print(stdout, P, n);
+    poly_orientation(P, n);
     C = poly_cov(P, n);
+    free(C);
+    poly_mult(P, n, 1.0, 1.01);
+    poly_orientation(P, n);
     poly_to_svg(P, n, "temp.svg");
     free(P);
 }
 
-int main()
+void benchmark()
 {
+    int N = 1000;
+    int V = 40;
+    printf("Benchmarking with %d polygons with %d vertices\n", N, V);
+    double * P = malloc(V*2*sizeof(double));
+    double atotal = 0;
+    for(int kk = 0; kk < N; kk++)
+    {
+        for(int ll = 0 ; ll<2*V; ll++)
+        {
+            P[ll] = rand() / (double) RAND_MAX;
+        }
+        poly_props * p = poly_measure(P, V);
+        atotal += p->Area;
+        poly_props_free(&p);
+    }
+    printf("Total area: %f\n", atotal);
+    free(P);
+}
+
+int main(int argc, char ** argv)
+{
+    if(argc > 1)
+    {
+        int n = (argc-1);
+        if( n%2 != 0)
+        {
+            printf("An even number of values has to be give, (x0, y0), (x1, y1), ...\n");
+            exit(1);
+        }
+        n /= 2;
+        double * P = malloc(2*n*sizeof(double));
+        for(int kk = 1; kk < argc; kk++)
+        {
+            P[kk-1] = atof(argv[kk]);
+        }
+
+        poly_print(stdout, P, n);
+        poly_props * props = poly_measure(P, n);
+        poly_props_print(stdout, props);
+        poly_props_free(&props);
+        free(P);
+        return 0;
+    }
+
+    benchmark();
+
     poly_area_ut();
     poly_cbinter_ut();
     poly_com_ut();
