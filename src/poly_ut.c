@@ -1,7 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "poly.h"
+
+static double timespec_diff(struct timespec* end, struct timespec * start)
+{
+    double elapsed = (end->tv_sec - start->tv_sec);
+    elapsed += (end->tv_nsec - start->tv_nsec) / 1000000000.0;
+    return elapsed;
+}
 
 double * new_square(int * n)
 {
@@ -112,11 +120,18 @@ void poly_cov_ut()
 
 void benchmark()
 {
-    int N = 1000;
+
+    #ifdef NDEBUG
+    int N = 1000000;
+    #else
+    int N = 100;
+    #endif
     int V = 40;
     printf("Benchmarking with %d polygons with %d vertices\n", N, V);
     double * P = malloc(V*2*sizeof(double));
     double atotal = 0;
+    struct timespec tstart, tend;
+    clock_gettime(CLOCK_REALTIME, &tstart);
     for(int kk = 0; kk < N; kk++)
     {
         for(int ll = 0 ; ll<2*V; ll++)
@@ -129,6 +144,9 @@ void benchmark()
     }
     printf("Total area: %f\n", atotal);
     free(P);
+    clock_gettime(CLOCK_REALTIME, &tend);
+    double dt = timespec_diff(&tend, &tstart);
+    printf("Took: %f s, i.e. %f polygons / s\n", dt, (double) N / dt);
 }
 
 int main(int argc, char ** argv)
