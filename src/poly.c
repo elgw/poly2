@@ -14,6 +14,59 @@ static double * vec_deinterlace(const double * V, int stride, size_t N);
 static void vec_show(const double * V, int n);
 static double d2(const double * P0, const double *P1);
 
+poly_props * poly_props_new()
+{
+    poly_props * props = malloc(sizeof(poly_props));
+    props->Centroid = malloc(2*sizeof(double));
+    props->BoundingBox = malloc(4*sizeof(double));
+}
+
+poly_props_free(poly_props ** PP)
+{
+    poly_props * P = PP[0];
+    free(P->Centroid);
+    free(P->BoundingBox);
+    free(PP[0]);
+    PP[0] = NULL;
+}
+
+void poly_props_print(FILE * fout, poly_props * props)
+{
+    fprintf(fout, "Area: %f\n", props->Area);
+    fprintf(fout, "Centroid: (%f, %f)\n",
+            props->Centroid[0], props->Centroid[1]);
+    fprintf(fout, "BoundingBox: (%f, %f, %f, %f)\n",
+            props->BoundingBox[0], props->BoundingBox[1],
+            props->BoundingBox[2], props->BoundingBox[3]);
+    fprintf(fout, "MajorAxisLength: %f", props->MajorAxisLength);
+    fprintf(fout, "MinorAxisLength: %f", props->MinorAxisLength);
+    fprintf(fout, "Eccentricity: %f\n", props->Eccentricity);
+    fprintf(fout, "Orientation: %f\n", props->Orientation);
+    fprintf(fout, "ConvexArea: %f\n", props->ConvexArea);
+    fprintf(fout, "Circularity: %f\n", props->Circularity);
+    fprintf(fout, "EquivDiameter: %f\n", props->EquivDiameter);
+    fprintf(fout, "Solidity: %f\n", props->Solidity);
+    fprintf(fout, "Perimeter: %f\n", props->Perimeter);
+    return;
+}
+
+poly_props * poly_measure(const double * P, int n)
+{
+    poly_props * props = poly_props_new();
+    props->Area = poly_area(P, n);
+    props->Perimeter = poly_circ(P, n);
+    // etc ...
+}
+
+// Multiply by the value v
+void poly_mult(double * P, int n, double v)
+{
+    for(int kk = 0; kk<2*n; kk++)
+    {
+        P[kk] *= v;
+    }
+}
+
 void poly_rotate(double * P, int n , double x0, double y0, const double theta)
 {
     double st = sin(theta);
@@ -186,14 +239,21 @@ void com_accumulate(double * com, const double * p, const double * q)
     double dx = qx - px;
     double dy = qy - py;
 
+    double Dx = qx - px;
+    double Dy = qy - py;
+    double c0 = px*px;
+    double c1 = -2*px*Dx;
+    double c2 = Dx*Dx;
+
     double alpha = px*py;
     double beta = dx*py + dy*px;
     double gamma = dx*dy;
 
-    double comx = -dx*(alpha + beta/2.0 + gamma/3.0);
+    //double comx = -dx*(alpha + beta/2.0 + gamma/3.0);
+    double comx = 1/2.0*Dy*(c0 + c1/2.0 + c2/3.0);
     double comy = dy*(alpha + beta/2.0 + gamma/3.0);
 
-    //printf("(%f,%f) -> (%f, %f) com: (%f, %f)\n", p[0], p[1], q[0], q[1], comx, comy);
+    printf("(%f,%f) -> (%f, %f) com: (%f, %f)\n", p[0], p[1], q[0], q[1], comx, comy);
 
     com[0] += comx;
     com[1] += comy;
@@ -295,7 +355,9 @@ double * poly_com(const double * P, int n)
         p = P + 2*kk;
         com_accumulate(cm, p, q);
     }
-
+    double a = poly_area(P, n);
+    cm[0] /= a;
+    cm[1] /= a;
     return cm;
 }
 
@@ -436,8 +498,8 @@ double * poly_cov(const double * P, int n)
     double M00 = poly_area(P, n);
 
     double * C = poly_com(P, n);
-    double M10 = C[0];
-    double M01 = C[1];
+    double M10 = C[0]*M00;
+    double M01 = C[1]*M00;
     free(C);
     double M20 = poly_M20(P, n);
     double M02 = poly_M02(P, n);

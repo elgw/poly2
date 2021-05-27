@@ -60,6 +60,8 @@ void poly_com_ut()
     printf("-- poly_com_ut\n");
     int n = 0;
     double * P = new_square(&n);
+
+
     poly_print(stdout, P, n);
     double * C = poly_com(P, n);
     printf("Com: (%f, %f)\n", C[0], C[1]);
@@ -82,6 +84,7 @@ void poly_cov_ut()
     printf("-- poly_cov_ut\n");
     int n = 0;
     double * P = new_square(&n);
+    poly_mult(P, n, 100);
     poly_print(stdout, P, n);
     double * C = poly_cov(P, n);
     printf("  - Translating by (.1, .2)\n");

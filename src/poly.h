@@ -24,9 +24,32 @@ TODO:
 #include <cairo.h>
 #include <cairo-svg.h>
 
+typedef struct{
+    double Area;
+    double * Centroid;
+    double * BoundingBox;
+    double MajorAxisLength;
+    double MinorAxisLength;
+    double Eccentricity;
+    double Orientation;
+    //double * ConvexHull;
+    double ConvexArea;
+    double Circularity;
+    double EquivDiameter;
+    double Solidity;
+    double Perimeter;
+} poly_props;
+
 //
 // MEASUREMENTS
 //
+
+// "High Level" interface, i.e. measure most stuff in a go
+poly_props * poly_measure(const double * P, int n);
+poly_props_free(poly_props**);
+void poly_props_print(FILE * fout, poly_props * props);
+
+
 
 // Area for polygon
 double poly_area(const double * P, int n);
@@ -48,6 +71,9 @@ double * poly_cov(const double * P, int n);
 //
 // MANIPULATION
 //
+
+// Multiply by v
+void poly_mult(double * P, int n, double v);
 
 // Translation
 void poly_translate(double * P, int n, double dx, double dy);
