@@ -124,12 +124,13 @@ poly_props * poly_measure(const double * P, int n)
     props->Eccentricity = sqrt(1-l1/l0);
     free(COV);
 
+    if(1){
     int nH = 0;
     double * H = poly_hull(P, n, &nH);
     props->ConvexArea = poly_area(H, nH);
     free(H);
     props->Solidity = props->Area / props->ConvexArea;
-
+    }
     return props;
 }
 

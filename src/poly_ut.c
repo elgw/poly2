@@ -126,18 +126,19 @@ void benchmark()
     #else
     int N = 100;
     #endif
-    int V = 40;
+    int V = 32;
     printf("Benchmarking with %d polygons with %d vertices\n", N, V);
     double * P = malloc(V*2*sizeof(double));
     double atotal = 0;
     struct timespec tstart, tend;
     clock_gettime(CLOCK_REALTIME, &tstart);
+    //printf("%d\n", kk);
+    for(int ll = 0 ; ll<2*V; ll++)
+    {
+        P[ll] = rand() / (double) RAND_MAX;
+    }
     for(int kk = 0; kk < N; kk++)
     {
-        for(int ll = 0 ; ll<2*V; ll++)
-        {
-            P[ll] = rand() / (double) RAND_MAX;
-        }
         poly_props * p = poly_measure(P, V);
         atotal += p->Area;
         poly_props_free(&p);
