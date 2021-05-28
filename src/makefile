@@ -1,8 +1,11 @@
-cflags_dbg=-Wall `pkg-config --cflags cairo gsl fontconfig` -g
-ldflags_dbg=-lm `pkg-config --libs gsl cairo fontconfig`
+cflags_ext=`pkg-config --cflags cairo gsl pango pangocairo fontconfig`
+ldflags_ext=`pkg-config --libs gsl cairo pango pangocairo fontconfig`
 
-cflags=-Wall `pkg-config --cflags cairo gsl fontconfig` -O3 -DNDEBUG
-ldflags=-lm `pkg-config --libs gsl cairo fontconfig` -flto
+cflags_dbg=-Wall $(cflags_ext) -g
+ldflags_dbg=-lm $(ldflags_ext)
+
+cflags=-Wall $(cflags_ext) -O3 -DNDEBUG
+ldflags=-lm $(ldflags_ext) -flto
 
 poly_ut:
 	gcc $(cflags) poly_ut.c poly.c $(ldflags) -o poly_ut

@@ -24,6 +24,7 @@ TODO:
 #include <cairo.h>
 #include <cairo-svg.h>
 #include <fontconfig/fontconfig.h>
+#include <pango/pangocairo.h>
 
 typedef struct{
     int nVertices;

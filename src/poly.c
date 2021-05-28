@@ -766,56 +766,94 @@ double coordscale(double x, double * bbx, double w, double padding)
 void poly_to_svg(double * P, int n, char * filename)
 {
 
-    int w = 512;
+    //// Settings
+    // Width and height does not matter much since
+    // it will be vector graphics.
+    int w = 1024;
     int h = 512;
     double padding = 10;
     double * bbx = poly_bbx(P, n);
 
+    //// Initialization
     cairo_surface_t *surface;
     cairo_t *cr;
     surface = cairo_svg_surface_create(filename, w, h);
-    // surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 390, 60);
     cr = cairo_create(surface);
 
+    //// Background
+    cairo_rectangle (cr, 0, 0, w/2, h);
+    cairo_set_source_rgba (cr, 1, 1, 1, 1);
+    cairo_fill(cr);
+    cairo_rectangle (cr, w/2, 0, w/2, h);
+    cairo_set_source_rgba (cr, 0.7, 0.7, 0.7, 1);
+    cairo_fill(cr);
+
+    //// Transform polygon points
+    double * X = malloc(n*sizeof(double));
+    double * Y = malloc(n*sizeof(double));
+    for(int kk = 0; kk<n; kk++)
+    {
+        X[kk] = P[2*kk];
+        Y[kk] = P[2*kk+1];
+        X[kk] = w/2 + coordscale(X[kk], bbx, (double) w/2, padding);
+        Y[kk] = 0   + coordscale(Y[kk], bbx+2, (double) h, padding);
+    }
+
+    //// Draw wire-frame
     cairo_set_source_rgb(cr, 0, 0, 0);
-    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
-                           CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(cr, 20.0);
-    cairo_move_to(cr, 10.0, 20.0);
-char * caption = malloc(128);
-sprintf(caption, "%d", n);
-    cairo_show_text(cr, caption);
-free(caption);
+    cairo_set_line_width(cr, 4);
+    cairo_line_to(cr, X[n-1], Y[n-1]);
+
+    for(int kk = 0; kk < n; kk++)
+    {
+        cairo_line_to (cr, X[kk], Y[kk]);
+    }
+    cairo_close_path(cr);
+    cairo_stroke(cr);
+
+    for(int kk = 0; kk<n; kk++)
+    {
+        cairo_set_source_rgba (cr, 1, 0.2, 0.2, .8);
+        //cairo_set_line_width (cr, 2.0);
+        cairo_arc (cr, X[kk], Y[kk], 6.0, 0, 2*M_PI);
+        cairo_fill (cr);
+    }
+    free(X);
+    free(Y);
+
+    //// Perform the feature extraction
+    poly_props * props = poly_measure(P, n);
+    char *bp;
+    size_t size;
+    FILE *stream =  open_memstream (&bp, &size);
+    poly_props_print(stream, props);
+    fflush (stream);
+    fclose(stream);
+    poly_props_free(&props);
 
 
-cairo_set_source_rgb(cr, 0, 0, 0);
-cairo_set_line_width(cr, 5);
-double xold = P[2*(n-1)];
-xold = coordscale(xold, bbx, (double) w, padding);
-double yold = P[2*(n-1)+1];
-yold = coordscale(yold, bbx+2, (double) h, padding);
+    //// Put some text
+    PangoFontDescription* font_description=pango_font_description_new();
+    pango_font_description_set_family(font_description, "Sans");
+    pango_font_description_set_weight(font_description, PANGO_WEIGHT_BOLD);
+    pango_font_description_set_absolute_size(font_description, 12*PANGO_SCALE);
 
+    PangoLayout* layout=pango_cairo_create_layout(cr);
+    pango_layout_set_font_description(layout, font_description);
+    pango_layout_set_text(layout, bp,-1);
+    cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+    cairo_move_to (cr, 10.0, 20.0);
+    pango_cairo_show_layout(cr, layout);
 
-for(int kk = 0; kk < n; kk++)
-{
-    printf("%f %f\n", xold, yold);
-    cairo_move_to(cr, xold, yold);
-    double x = P[2*kk];
-    x = coordscale(x, bbx, (double) w, padding);
-    double y = P[2*kk+1];
-    y = coordscale(y, bbx+2, (double) h, padding);
-    cairo_line_to(cr, x, y);
-    xold = x;
-    yold = y;
-}
-cairo_stroke(cr);
+    free(bp); // Free the feature text
 
-//cairo_surface_write_to_svg(surface, filename);
+    // cairo_surface_write_to_svg(surface, filename);
 
+    //// Clean up
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
     free(bbx);
-    // For clean valgrind
-    FcFini();
-    cairo_debug_reset_static_data();
+    // For clean(er) valgrind
+    //FcFini();
+    //cairo_debug_reset_static_data();
 }
