@@ -75,14 +75,10 @@ void poly_props_print(FILE * fout, poly_props * props)
     double ori2 = ori1 + M_PI;
 
     fprintf(fout, "  Orientation: %f (or %f)\n", ori1, ori2);
-
-    //fprintf(fout, "  ConvexArea: %f\n", props->ConvexArea);
-    fprintf(fout, "  ConvexArea: TODO\n");
-
+    fprintf(fout, "  ConvexArea: %f\n", props->ConvexArea);
     fprintf(fout, "  Circularity: %f\n", props->Circularity);
     fprintf(fout, "  EquivDiameter: %f\n", props->EquivDiameter);
-    //fprintf(fout, "  Solidity: %f\n", props->Solidity);
-    fprintf(fout, "  Solidity: TODO\n");
+    fprintf(fout, "  Solidity: %f\n", props->Solidity);
     fprintf(fout, "  Perimeter: %f\n", props->Perimeter);
     return;
 }
@@ -113,8 +109,6 @@ poly_props * poly_measure(const double * P, int n)
     props->Perimeter = poly_circ(P, n);
     // etc ...
     props->BoundingBox = poly_bbx(P, n);
-
-
     props->Circularity = (4.0*props->Area*M_PI)/pow(props->Perimeter, 2);
     props->EquivDiameter = sqrt(4.0*props->Area/M_PI);
     //props->Solidity = props->Area/props->ConvexArea;
@@ -129,6 +123,13 @@ poly_props * poly_measure(const double * P, int n)
     props->MinorAxisLength = 4*sqrt(l1);
     props->Eccentricity = sqrt(1-l1/l0);
     free(COV);
+
+    int nH = 0;
+    double * H = poly_hull(P, n, &nH);
+    props->ConvexArea = poly_area(H, nH);
+    free(H);
+    props->Solidity = props->Area / props->ConvexArea;
+
     return props;
 }
 
@@ -861,6 +862,38 @@ done: ;
     return H;
 }
 
+static void draw_poly(cairo_t * cr, double * X, double * Y, int n,
+                     double lineWidth, double red, double green, double blue)
+{
+    double alpha = 0.8;
+    cairo_set_source_rgba(cr, red, green, blue, alpha);
+    cairo_set_line_width(cr, lineWidth);
+    cairo_move_to(cr, X[n-1], Y[n-1]);
+
+    for(int kk = 0; kk < n; kk++)
+    {
+        cairo_line_to (cr, X[kk], Y[kk]);
+    }
+    cairo_close_path(cr);
+    cairo_stroke(cr);
+
+    for(int kk = 0; kk<n; kk++)
+    {
+        double pointSize = lineWidth*1.2;
+        if( kk == 0)
+        {
+            pointSize *= 2.0;
+        }
+        if(kk == 1)
+        {
+            pointSize *= 1.5;
+        }
+        cairo_arc (cr, X[kk], Y[kk], pointSize, 0, 2*M_PI);
+        cairo_fill (cr);
+    }
+    return;
+}
+
 void poly_to_svg(double * P, int n, char * filename)
 {
 
@@ -896,26 +929,7 @@ void poly_to_svg(double * P, int n, char * filename)
         X[kk] = w/2 + coordscale(X[kk], bbx, (double) w/2, padding);
         Y[kk] = 0   + coordscale(Y[kk], bbx+2, (double) h, padding);
     }
-
-    //// Draw wire-frame
-    cairo_set_source_rgb(cr, 0, 0, 0);
-    cairo_set_line_width(cr, 4);
-    cairo_move_to(cr, X[n-1], Y[n-1]);
-
-    for(int kk = 0; kk < n; kk++)
-    {
-        cairo_line_to (cr, X[kk], Y[kk]);
-    }
-    cairo_close_path(cr);
-    cairo_stroke(cr);
-
-    for(int kk = 0; kk<n; kk++)
-    {
-        cairo_set_source_rgba (cr, 1, 0.2, 0.2, .8);
-        //cairo_set_line_width (cr, 2.0);
-        cairo_arc (cr, X[kk], Y[kk], 6.0, 0, 2*M_PI);
-        cairo_fill (cr);
-    }
+    draw_poly(cr, X, Y, n, 4.0, 0.0, 0.0, 0.0);
     free(X);
     free(Y);
 
@@ -940,16 +954,8 @@ void poly_to_svg(double * P, int n, char * filename)
     }
     free(H);
 
-    cairo_set_source_rgb(cr, 0, 1, 0);
-    cairo_set_line_width(cr, 2);
-    cairo_move_to(cr, X[nH-1], Y[nH-1]);
+    draw_poly(cr, X, Y, nH, 2.0, 0.0, 1.0, 0.0);
 
-    for(int kk = 0; kk < nH; kk++)
-    {
-        cairo_line_to (cr, X[kk], Y[kk]);
-    }
-    cairo_close_path(cr);
-    cairo_stroke(cr);
     free(X);
     free(Y);
     } else {
