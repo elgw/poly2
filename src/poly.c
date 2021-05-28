@@ -1,21 +1,19 @@
 #include "poly.h"
 
-/* Cubic spline interpolation of closed curve
- * https://mathworld.wolfram.com/CubicSpline.html
- *
- * asserts that the input domain is regularly spaced
- */
+//// Forward declarations for non-exported functions
 
-
-// Forward declarations for non-exported functions
+//Cubic spline interpolation of closed curve
 static double * cbspline(const double * y, int N, int f, int * np);
 static double * vec_interlace(const double * A, double * B, size_t N);
 static double * vec_deinterlace(const double * V, int stride, size_t N);
 //static void vec_show(const double * V, int n);
 static double d2(const double * P0, const double *P1);
-static void eigenvector_sym_22(double a, double b, double c, double l, double * v0, double * v1);
-static void eigenvalue_sym_22(double a, double b, double c, double * l0, double * l1);
+static void eigenvector_sym_22(double a, double b, double c, double l,
+                               double * v0, double * v1);
+static void eigenvalue_sym_22(double a, double b, double c,
+                              double * l0, double * l1);
 double poly_orientation_with_COV(double * COV);
+
 
 poly_props * poly_props_new()
 {
@@ -78,10 +76,13 @@ void poly_props_print(FILE * fout, poly_props * props)
 
     fprintf(fout, "  Orientation: %f (or %f)\n", ori1, ori2);
 
-    fprintf(fout, "  TODO: ConvexArea: %f\n", props->ConvexArea);
+    //fprintf(fout, "  ConvexArea: %f\n", props->ConvexArea);
+    fprintf(fout, "  ConvexArea: TODO\n");
+
     fprintf(fout, "  Circularity: %f\n", props->Circularity);
     fprintf(fout, "  EquivDiameter: %f\n", props->EquivDiameter);
-    fprintf(fout, "  TODO: Solidity: %f\n", props->Solidity);
+    //fprintf(fout, "  Solidity: %f\n", props->Solidity);
+    fprintf(fout, "  Solidity: TODO\n");
     fprintf(fout, "  Perimeter: %f\n", props->Perimeter);
     return;
 }
@@ -763,6 +764,94 @@ double coordscale(double x, double * bbx, double w, double padding)
     return x;
 }
 
+static double _poly_hull_rcl(const double * A, const double * B, const double * C)
+{
+    // One possible implementation of the (a, b, c)-function from the paper
+    // used to determine if C is to the right or left of the A->B vector
+    // splitting the plane
+    double qx = B[0] - A[0];
+    double qy = B[1] - A[1];
+    double rx = C[0] - A[0];
+    double ry = C[1] - A[1];
+    return qx*ry - qy*rx;
+}
+
+static void _poly_hull_push(int * Q, int * b, int * t, int v)
+{
+    Q[t[0]++]=v;
+}
+
+static void _poly_hull_insert(int * Q, int * b, int * t, int v)
+{
+    Q[b[0]--]=v;
+    assert(b[0] >= 0);
+}
+
+double * poly_hull(const double * P, int n, int * h)
+{
+    // Algorithm Hull from
+    // On-Line Construction of the Convex Hull of a Simple Polyline
+    // A. Melkman, Inf. Process. Lett., 1987 (25), pp. 11-12
+
+    // A dequeue implemented as a redundant array.
+    size_t size_Q = 2*n;
+    int * Q = malloc(size_Q*sizeof(int));
+    int b = n; // Index of bottom element
+    int t = b-1; // Index of top element
+
+/// 1.
+    if( _poly_hull_rcl(P, P+2, P+4) > 0)
+    {
+        _poly_hull_push(Q, &b, &t, 1);
+        _poly_hull_push(Q, &b, &t, 2);
+    } else {
+        _poly_hull_push(Q, &b, &t, 2);
+        _poly_hull_push(Q, &b, &t, 1);
+    }
+    _poly_hull_push(Q, &b, &t, 3);
+    _poly_hull_insert(Q, &b, &t, 3);
+    int idx = 4;
+label2:
+    /// 2.
+    while(! ( (_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) < 0) |
+              (_poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) < 0)  ) )
+    {
+        idx++;
+        // "The algorithm halts when the input is exhausted"
+        if(idx == n)
+            goto done;
+
+    }
+    /// 3.
+    while(!( _poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) > 0))
+    {
+        t--; // pop
+    }
+    _poly_hull_push(Q, &b, &t, idx);
+    assert(t < size_Q);
+    /// 4.
+    while(!(_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) > 0))
+    {
+        b++; // remove
+    }
+    _poly_hull_insert(Q, &b, &t, idx);
+    goto label2;
+
+done: ;
+    // Q[t] and Q[b] "will always refer to the same vertex"
+    // hence we copy only until Q[b-1]
+    int nH = t-b;
+    double * H = malloc(nH*2*sizeof(double));
+    for(int kk = t; kk<b; kk++)
+    {
+        H[kk*2]     = P[Q[kk]*2];
+        H[kk*2 + 1] = P[Q[kk]*2 + 1];
+    }
+    h[0] = nH;
+    free(Q);
+    return H;
+}
+
 void poly_to_svg(double * P, int n, char * filename)
 {
 
@@ -834,7 +923,7 @@ void poly_to_svg(double * P, int n, char * filename)
 
     //// Put some text
     PangoFontDescription* font_description=pango_font_description_new();
-    pango_font_description_set_family(font_description, "Sans");
+    pango_font_description_set_family(font_description, "Mono");
     pango_font_description_set_weight(font_description, PANGO_WEIGHT_BOLD);
     pango_font_description_set_absolute_size(font_description, 12*PANGO_SCALE);
 

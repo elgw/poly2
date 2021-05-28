@@ -77,6 +77,10 @@ double * poly_cov(const double * P, int n);
 // from eigenvectors
 double poly_orientation(const double * P, int n);
 
+// Returns the convex hull of P with h points
+// Using Melkmans O(n) algorithm.
+double * poly_hull(const double * P, int n, int * h);
+
 //
 // MANIPULATION
 //
