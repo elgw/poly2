@@ -7,6 +7,18 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 
+
+\usepackage[
+    backend=biber,
+    style=authoryear-icomp,
+    sortlocale=en_us,
+    natbib=true,
+    url=false,
+    doi=true,
+    eprint=false
+]{biblatex}
+\addbibresource{ref.bib}
+
 \begin{document}
 
 \title{poly}
@@ -109,6 +121,6 @@ Remember that for polygons, we define $I(x,y)=1$ inside the polygons, and $0$ ou
 \section{What else}
 Moments that are invariant to translation, scale and rotation are described in \cite{hu1962visual}. To find the convex hull of polygons the algorithm by Graham and Yao \cite{graham1983finding} seems like a good candidate.
 
-% TODO references
+\printbibliography
 
 \end{document}
