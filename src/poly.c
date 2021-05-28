@@ -778,12 +778,12 @@ static double _poly_hull_rcl(const double * A, const double * B, const double * 
 
 static void _poly_hull_push(int * Q, int * b, int * t, int v)
 {
-    Q[t[0]++]=v;
+    Q[++t[0]]=v;
 }
 
 static void _poly_hull_insert(int * Q, int * b, int * t, int v)
 {
-    Q[b[0]--]=v;
+    Q[--b[0]]=v;
     assert(b[0] >= 0);
 }
 
@@ -792,6 +792,7 @@ double * poly_hull(const double * P, int n, int * h)
     // Algorithm Hull from
     // On-Line Construction of the Convex Hull of a Simple Polyline
     // A. Melkman, Inf. Process. Lett., 1987 (25), pp. 11-12
+
 
     // A dequeue implemented as a redundant array.
     size_t size_Q = 2*n;
@@ -802,17 +803,23 @@ double * poly_hull(const double * P, int n, int * h)
 /// 1.
     if( _poly_hull_rcl(P, P+2, P+4) > 0)
     {
+        _poly_hull_push(Q, &b, &t, 0);
         _poly_hull_push(Q, &b, &t, 1);
-        _poly_hull_push(Q, &b, &t, 2);
     } else {
-        _poly_hull_push(Q, &b, &t, 2);
         _poly_hull_push(Q, &b, &t, 1);
+        _poly_hull_push(Q, &b, &t, 0);
     }
-    _poly_hull_push(Q, &b, &t, 3);
-    _poly_hull_insert(Q, &b, &t, 3);
-    int idx = 4;
+    _poly_hull_push(Q, &b, &t, 2);
+    _poly_hull_insert(Q, &b, &t, 2);
+    int idx = 3;
 label2:
     /// 2.
+    if(0){
+    printf("b = %d, t = %d\n", b, t);
+    for(int tt = b; tt<=t; tt++)
+    { printf("Q[%d] = %d\n", tt, Q[tt]);}
+    fflush(stdout);
+    }
     while(! ( (_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) < 0) |
               (_poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) < 0)  ) )
     {
@@ -842,10 +849,12 @@ done: ;
     // hence we copy only until Q[b-1]
     int nH = t-b;
     double * H = malloc(nH*2*sizeof(double));
-    for(int kk = t; kk<b; kk++)
+    int row = 0; // output row
+    for(int kk = b; kk<t; kk++)
     {
-        H[kk*2]     = P[Q[kk]*2];
-        H[kk*2 + 1] = P[Q[kk]*2 + 1];
+        H[row*2]     = P[Q[kk]*2];
+        H[row*2 + 1] = P[Q[kk]*2 + 1];
+        row++;
     }
     h[0] = nH;
     free(Q);
@@ -891,7 +900,7 @@ void poly_to_svg(double * P, int n, char * filename)
     //// Draw wire-frame
     cairo_set_source_rgb(cr, 0, 0, 0);
     cairo_set_line_width(cr, 4);
-    cairo_line_to(cr, X[n-1], Y[n-1]);
+    cairo_move_to(cr, X[n-1], Y[n-1]);
 
     for(int kk = 0; kk < n; kk++)
     {
@@ -909,6 +918,43 @@ void poly_to_svg(double * P, int n, char * filename)
     }
     free(X);
     free(Y);
+
+    //// Draw wire-frame for convex hull
+    int nH = 0;
+    double * H = poly_hull(P, n, &nH);
+    printf("P:\n");
+    poly_print(stdout, P, n);
+    printf("H:\n");
+    poly_print(stdout, H, nH);
+
+    if(H != NULL)
+    {
+    X = malloc(nH*sizeof(double));
+    Y = malloc(nH*sizeof(double));
+    for(int kk = 0; kk<nH; kk++)
+    {
+        X[kk] = H[2*kk];
+        Y[kk] = H[2*kk+1];
+        X[kk] = w/2 + coordscale(X[kk], bbx, (double) w/2, padding);
+        Y[kk] = 0   + coordscale(Y[kk], bbx+2, (double) h, padding);
+    }
+    free(H);
+
+    cairo_set_source_rgb(cr, 0, 1, 0);
+    cairo_set_line_width(cr, 2);
+    cairo_move_to(cr, X[nH-1], Y[nH-1]);
+
+    for(int kk = 0; kk < nH; kk++)
+    {
+        cairo_line_to (cr, X[kk], Y[kk]);
+    }
+    cairo_close_path(cr);
+    cairo_stroke(cr);
+    free(X);
+    free(Y);
+    } else {
+        printf("Could not calculate the convex hull\n");
+    }
 
     //// Perform the feature extraction
     poly_props * props = poly_measure(P, n);

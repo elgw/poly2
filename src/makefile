@@ -8,7 +8,7 @@ cflags=-Wall $(cflags_ext) -O3 -DNDEBUG
 ldflags=-lm $(ldflags_ext) -flto
 
 poly_ut:
-	gcc $(cflags) poly_ut.c poly.c $(ldflags) -o poly_ut
+	gcc $(cflags_dbg) poly_ut.c poly.c $(ldflags_dbg) -o poly_ut
 
 poly_bench:
 	gcc $(cflags) poly_ut.c poly.c $(ldflags) -o poly_bench

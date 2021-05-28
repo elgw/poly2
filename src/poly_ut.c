@@ -16,8 +16,8 @@ double * new_square(int * n)
     double * P = malloc(8*sizeof(double));
     P[0] = 0; P[2] = 1; P[4] = 1; P[6] = 0;
     P[1] = 0; P[3] = 0; P[5] = 1; P[7] = 1;
-
     n[0] = 4; // 4 corners
+    //poly_reverse(P, 4);
     return P;
 }
 
@@ -178,6 +178,8 @@ int main(int argc, char ** argv)
         poly_props * props = poly_measure(P, n);
         poly_props_print(stdout, props);
         poly_props_free(&props);
+        printf("Writing to argv.svg\n");
+        poly_to_svg(P, n, "argv.svg");
         free(P);
         return 0;
     }
