@@ -1,0 +1,114 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{amsmath}
+\usepackage{url}
+
+
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\begin{document}
+
+\title{poly}
+
+\section{Moments}
+
+For a 2D continuous function, the raw moments $M_{pq}$ are defined by:
+
+\begin{equation}
+  M_{pq} = \int_\infty^\infty \int_\infty^\infty x^py^qf(x,y) \,dx\,dy
+  \label{eq:moments_raw}
+\end{equation}
+
+The central moments are defined by:
+\begin{equation}
+  \mu_{pq} = \int_\infty^\infty \int_\infty^\infty (x-\bar{x})^p(y-\bar{y})^qf(x,y) \,dx\,dy
+  \label{eq:moments_central}
+\end{equation}
+
+The mean $x$ and $y$ coordinates, i.e., $\bar{x}$ and $\bar{y}$ can be defined by the raw moments as:
+\begin{align}
+  \bar{x} & = \frac{M_{10}}{M_{00}},\\
+  \bar{y} & = \frac{M_{01}}{M_{00}}.
+\end{align}
+
+By expanding Eq.~\ref{eq:moments_central} it can be shown that
+\begin{equation}
+  \mu_{pq} = \sum_m^q\sum_n^q \binom{p}{m}\binom{q}{n}(-\bar{x})^{p-m}(-\bar{y})^{q-n}M_{mn}
+  \label{eq:raw_to_central}
+  \end{equation}
+We use it to find the relation between the first raw and central moments:
+\begin{align} % from amsmath
+  \mu_{00} & = M_{00}\\
+  \mu_{01} & = 0 \\
+  \mu_{10} & = 0 \\
+  \mu_{11} & = M_{11} - \bar{x}M_{01} \\
+  \mu_{02} & = M_{02} - \bar{y}M_{01} \\
+  \mu_{20} & = M_{20} - \bar{y}M_{10} \\
+  \end{align}
+
+\section{The covariance matrix}
+The covariance matrix of an image $I(x,y)$ is defined by
+\begin{equation}
+  \text{cov}\left(I(x,y)\right) =
+  \begin{bmatrix}
+    \mu'_{20} & \mu'_{11} \\
+    \mu'_{11} & \mu'_{02} \\
+  \end{bmatrix}
+\end{equation}
+where $\mu'_{pq} = \mu_{pq}/\mu_{00}$.
+
+\section{Calculating moments for polygons}
+To calculate moments for polygons (without rasterization), we use Green's formula in combination with a parameterization over the edges.
+
+\begin{equation}
+  \int_{\partial D} P\,dx\,+Q\,dx = \int\int_D\left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right)\,dx\,dy
+\end{equation}
+Where $D$ is the domain (i.e., what is inside of the polygon) and $\partial D$ is the boundary of the domain, i.e., the edges of the polygon.
+
+If we look at the segment from point $p=(p_x, p_y)$ to point $q=(q_x, q_y)$ and define $\delta = q-p$ then the edge can be parameterized by $t$ in the range $[0, 1]$ as:
+\begin{align}
+  x & = p_x + t\delta_x \\
+  y & = p_y + t\delta_y \\
+ \end{align}
+
+As an example, the procedure to calculate $M_{00}$ on a polygon is the following: We start with the integral to be calculated:
+
+\begin{equation}
+  \int\int_D 1\,dx\,dy
+  \end{equation}
+
+We see that, if we set $Q=x$ then using greens formula we get:
+\begin{equation}
+  \int\int_D 1\,dx\,dy = \int_{\partial D} = 0\,dx + x\,dy = \int_{\partial D} = x\,dy
+\end{equation}
+Now, by looking at one edge at a time we get:
+\begin{equation}
+  \int_{\partial D} x\,dy = \sum_{i=0}^{n-1} \int_{\partial D_i} x\,dy
+\end{equation}
+
+We isolate the integral for a single edge and apply the coordinate transform:
+\begin{equation}
+  \int_{\partial D_i} x\,dy = \int_{0}^{1}(p_x+t\delta x)\delta_y\,dt
+  = \delta_y\int_{0}^{1}p_x+t\delta x\,dt
+\end{equation}
+In general, the integrals for the moments over individual edges boils down to integrals over polynoms:
+\begin{equation}
+  \int_0^1 c_0 + c_1t+c_2t^2+...\,dt = \sum_i \frac{c_i}{(i+1)!}.
+\end{equation}
+
+
+\section{Polygon properties}
+Remember that for polygons, we define $I(x,y)=1$ inside the polygons, and $0$ outside of them.
+\paragraph{Area} is defined by $M_{00}$.
+\paragraph{Centroid} is defined by $\left(\frac{M_{10}}{M_{00}}, \frac{M_{10}}{M_{00}}, \right)$.
+\paragraph{Eccentricity} is defined by $\sqrt{1-\frac{\lambda_1}{\lambda_0}}$.
+\paragraph{Major and minor axes} are defined as the major and minor axes of ellipsoid (i.e. surfaces closed by ellipse). These properties are calculated as $4\sqrt{\lambda}$.
+\paragraph{Circumference} is defined by summing the lengths of the individual edges.
+
+\section{What else}
+Moments that are invariant to translation, scale and rotation are described in [Hu1962].
+
+\end{document}
