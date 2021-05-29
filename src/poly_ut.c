@@ -13,10 +13,10 @@ static double timespec_diff(struct timespec* end, struct timespec * start)
 
 double * new_square(int * n)
 {
-    double * P = malloc(8*sizeof(double));
-    P[0] = 0; P[2] = 1; P[4] = 1; P[6] = 0;
-    P[1] = 0; P[3] = 0; P[5] = 1; P[7] = 1;
-    n[0] = 4; // 4 corners
+    double * P = malloc(10*sizeof(double));
+    P[0] = 0; P[2] = 1; P[4] = 1; P[6] = 0; P[8] = -.1;
+    P[1] = 0; P[3] = 0; P[5] = 1; P[7] = 1; P[9] = .4;
+    n[0] = 5; // 4 corners
     //poly_reverse(P, 4);
     return P;
 }
@@ -106,13 +106,16 @@ void poly_cov_ut()
     free(com);
     C = poly_cov(P, n);
     free(C);
-    printf("  - Rotating by 0.2\n");
-    poly_rotate(P, n, 0.0, 0.0, 0.2);
+    printf("  - Rotating by 0.4\n");
+    poly_rotate(P, n, 0.0, 0.0, 0.4);
     poly_print(stdout, P, n);
     poly_orientation(P, n);
-    C = poly_cov(P, n);
-    free(C);
+    printf(" - Multiplying by 1, 1.01\n");
     poly_mult(P, n, 1.0, 1.01);
+    C = poly_cov(P, n);
+    printf("C: [%f, %f; %f, %f]\n", C[0], C[1], C[1], C[2]);
+    //getchar();
+    free(C);
     poly_orientation(P, n);
     poly_to_svg(P, n, "temp.svg");
     free(P);

@@ -13,12 +13,14 @@ static void eigenvector_sym_22(double a, double b, double c, double l,
 static void eigenvalue_sym_22(double a, double b, double c,
                               double * l0, double * l1);
 double poly_orientation_with_COV(double * COV);
-
+static double _is_left(const double * A, const double * B, const double * C);
+static double _poly_hull_rcl(const double * A, const double * B, const double * C);
 
 poly_props * poly_props_new()
 {
     poly_props * props = malloc(sizeof(poly_props));
     props->Centroid = NULL;
+    props->MajorDirection = NULL;
     props->BoundingBox = NULL;
     props->measured = 0;
     props->ConvexArea = -1;
@@ -29,6 +31,10 @@ poly_props * poly_props_new()
 void poly_props_free(poly_props ** PP)
 {
     poly_props * P = PP[0];
+    if(P->MajorDirection != NULL)
+    {
+        free(P->MajorDirection);
+    }
     if(P->Centroid != NULL)
     {
         free(P->Centroid);
@@ -49,7 +55,15 @@ void poly_props_print(FILE * fout, poly_props * props)
         fprintf(fout, "  ! No measurements recorded\n");
         return;
     }
+    fprintf(fout, "  Simple: TODO\n");
     fprintf(fout, "  Vertices: %d\n", props->nVertices);
+    if(props->VertexOrder == POLY_VERTEX_ORDER_CLOCKWISE)
+    {
+        fprintf(fout, "  Vertex order: clockwise\n");
+    } else {
+        fprintf(fout, "  Vertex order: NOT CLOCKWISE\n");
+    }
+
     fprintf(fout, "  Area: %f\n", props->Area);
     if(props->Centroid != NULL)
     {
@@ -83,6 +97,59 @@ void poly_props_print(FILE * fout, poly_props * props)
     return;
 }
 
+
+
+int poly_vertex_order(const double * P, int n)
+{
+    // Uses the method described in [sunday]
+    // Returns < 0 if clockwise and > 0 for counter-clockwise
+    // returns 0 for degenerate cases
+    // note that non-simple polygons might not return 0
+
+    // 1/ Find the vertex with smallest y,
+    //    if more than one, pick the one with smallest x
+    int idx = 0;
+    double minx = P[0];
+    double miny = P[1];
+
+    for (int kk=1; kk<n; kk++) {
+        double y = P[2*kk + 1];
+        if (y > miny)
+        {
+            continue;
+        }
+        double x = P[2*kk];
+        if (y == miny) {
+            if (x < minx)
+                continue;
+        }
+        idx = kk;      // a new rightmost lowest vertex
+        minx = x;
+        miny = y;
+    }
+
+    double val = 0;
+    // 2. Return the orientation for idx-1, idx, idx+1
+    if (idx == 0)
+    {
+        val = _is_left(P + 2*n-2, P, P+2);
+    }
+    else
+    {
+        val = _is_left(P+2*idx-2, P+2*idx, P+2*idx+2);
+    }
+    if(val < 0)
+    {
+        return POLY_VERTEX_ORDER_CLOCKWISE;
+    }
+    if( val > 0)
+    {
+        return POLY_VERTEX_ORDER_ANICLOCKWISE;
+    }
+    return POLY_VERTEX_ORDER_ERROR;
+}
+
+
 void poly_reverse(double * P, int n)
 {
     // Reverse the order in P
@@ -103,7 +170,7 @@ void poly_reverse(double * P, int n)
 poly_props * poly_measure(const double * P, int n)
 {
     poly_props * props = poly_props_new();
-    props->measured = 1;
+    props->VertexOrder = poly_vertex_order(P, n);
     props->nVertices = n;
     props->Area = poly_area(P, n);
     props->Perimeter = poly_circ(P, n);
@@ -117,11 +184,16 @@ poly_props * poly_measure(const double * P, int n)
     props->Orientation = poly_orientation_with_COV(COV);
     props->Centroid = poly_com(P, n);
 
+
     double l0, l1;
     eigenvalue_sym_22(COV[0], COV[1], COV[2], &l0, &l1);
     props->MajorAxisLength = 4*sqrt(l0);
     props->MinorAxisLength = 4*sqrt(l1);
     props->Eccentricity = sqrt(1-l1/l0);
+    props->MajorDirection = malloc(2*sizeof(double));
+    eigenvector_sym_22(COV[0], COV[1], COV[2], l0,
+                       props->MajorDirection, props->MajorDirection+1);
+    printf("!!?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
     free(COV);
 
     if(1){
@@ -131,6 +203,7 @@ poly_props * poly_measure(const double * P, int n)
     free(H);
     props->Solidity = props->Area / props->ConvexArea;
     }
+    props->measured = 1;
     return props;
 }
 
@@ -598,16 +671,32 @@ double * poly_cov(const double * P, int n)
 }
 
 
-
 static void eigenvector_sym_22(double a, double b, double c, double l, double * v0, double * v1)
 {
     // Eigenvector to the matrix [a b; b c] corresponding
     // to eigenvalue l
-    double vx = b / sqrt(b*b + pow(l-a,2));
-    double vy = b / sqrt(b*b + pow(l-c,2));
-    double n = sqrt(pow(vx, 2) + pow(vy, 2));
-    v0[0] = vx/n;
-    v1[0] = vy/n;
+    double q = pow(b, 2) + pow(a-l, 2);
+    double r = pow(c-l, 2) + pow(b, 2);
+    printf("a = %f, b = %f, c = %f\n", a, b, c);
+    printf("l = %f, q = %f, r = %f\n", l, q, r);
+
+    if(q > r)
+    {
+        double n = sqrt(q);
+        v0[0] = -b/n;
+        v1[0] = (a-l)/n;
+        return;
+    }
+    if(r >= q && r > 0)
+    {
+        double n = sqrt(r);
+        v0[0] = (c-l)/n;
+        v1[0] = -b/n;
+        return;
+    }
+// Fallback for eye(2)
+    v0[0] = 1;
+    v1[0] = 0;
     return;
 }
 
@@ -619,6 +708,7 @@ static void eigenvalue_sym_22(double a, double b, double c, double * l0, double 
     double q = 0.5*sqrt( pow(a-c, 2) + 4*pow(b, 2));
     l0[0] = p + q;
     l1[0] = p - q;
+    printf("l0: %f, l1: %f\n", l0[0], l1[0]);
 }
 
 
@@ -629,8 +719,17 @@ double poly_orientation_with_COV(double * COV)
     double b = COV[1];
     double c = COV[2];
 
+    printf("COV = [[%f, %f]; [%f, %f]]\n", a, b, b, c);
 
-    //printf("COV = [[%f, %f]; [%f, %f]]\n", a, b, b, c);
+    double orientation = 1.0/2.0*M_PI/2.0;
+    if((a-c) != 0)
+    {
+        orientation = 1.0/2.0*atan(2.0*b/(a-c));
+    }
+    return orientation;
+}
+/*
+
     double l0, l1;
     eigenvalue_sym_22(a, b, c, &l0, &l1);
     //printf("l0 = %f, l1 = %f\n", l0, l1);
@@ -650,7 +749,7 @@ double poly_orientation_with_COV(double * COV)
     //printf("Orientation: %f\n", orientation);
 
     return orientation;
-}
+*/
 
 double poly_orientation(const double * P, int n)
 {
@@ -766,6 +865,12 @@ double coordscale(double x, double * bbx, double w, double padding)
     return x;
 }
 
+
+static double _is_left(const double * A, const double * B, const double * C)
+{
+    return - _poly_hull_rcl(A, B, C);
+}
+
 static double _poly_hull_rcl(const double * A, const double * B, const double * C)
 {
     // One possible implementation of the (a, b, c)-function from the paper
@@ -802,7 +907,7 @@ double * poly_hull(const double * P, int n, int * h)
     int b = n; // Index of bottom element
     int t = b-1; // Index of top element
 
-/// 1.
+/// 1. -- initialization
     if( _poly_hull_rcl(P, P+2, P+4) > 0)
     {
         _poly_hull_push(Q, &b, &t, 0);
@@ -835,6 +940,7 @@ label2:
     while(!( _poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) > 0))
     {
         t--; // pop
+        assert(t>=b);
     }
     _poly_hull_push(Q, &b, &t, idx);
     assert(t < size_Q);
@@ -842,6 +948,7 @@ label2:
     while(!(_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) > 0))
     {
         b++; // remove
+        assert(t>=b);
     }
     _poly_hull_insert(Q, &b, &t, idx);
     goto label2;
@@ -963,16 +1070,28 @@ void poly_to_svg(double * P, int n, char * filename)
         printf("Could not calculate the convex hull\n");
     }
 
+
+
     //// Perform the feature extraction
     poly_props * props = poly_measure(P, n);
+    printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
     char *bp;
     size_t size;
     FILE *stream =  open_memstream (&bp, &size);
     poly_props_print(stream, props);
     fflush (stream);
     fclose(stream);
-    poly_props_free(&props);
 
+
+    printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
+    fflush(stdout);
+
+    cairo_set_source_rgba(cr, 0, 1, 1, 1);
+    cairo_set_line_width(cr, 4);
+    cairo_move_to(cr, 0.75*w, 0.5*h);
+    cairo_rel_line_to(cr, 200.0*props->MajorDirection[0], 200.0*props->MajorDirection[1]);
+    cairo_stroke(cr);
+    poly_props_free(&props);
 
     //// Put some text
     PangoFontDescription* font_description=pango_font_description_new();

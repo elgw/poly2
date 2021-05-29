@@ -3,6 +3,8 @@
 Polygons with n vertices are stored with x and y coordinates interlaced,
 i.e. x0, y0, x1, x2, ... typically denoted P
 
+[sunday] Daniel Sunday, Practical Geometry Algorithms: with C++ Code, 979-8749449730
+
 TODO:
  - Malloc-free versions of all routines, using supplied memory buffers.
  - Principal directions.
@@ -26,13 +28,19 @@ TODO:
 #include <fontconfig/fontconfig.h>
 #include <pango/pangocairo.h>
 
+#define POLY_VERTEX_ORDER_CLOCKWISE -1
+#define POLY_VERTEX_ORDER_ERROR 0
+#define POLY_VERTEX_ORDER_ANICLOCKWISE 1
+
 typedef struct{
     int nVertices;
+    int VertexOrder; // clockwise, anticlockwise or error
     double Area;
     double * Centroid;
     double * BoundingBox;
     double MajorAxisLength;
     double MinorAxisLength;
+    double * MajorDirection;
     double Eccentricity;
     double Orientation; // Using atan2 on principal axes
     //double * ConvexHull;
@@ -54,6 +62,9 @@ poly_props * poly_measure(const double * P, int n);
 void poly_props_free(poly_props**);
 void poly_props_print(FILE * fout, poly_props * props);
 
+
+// Vertex order: we only support clockwise
+int poly_vertex_order(const double * P, int n);
 
 // Area for polygon
 double poly_area(const double * P, int n);
