@@ -49,6 +49,7 @@ typedef struct{
     double EquivDiameter;
     double Solidity;
     double Perimeter;
+    char * Comment;
 
     int measured;
 } poly_props;

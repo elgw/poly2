@@ -92,8 +92,20 @@ void poly_cov_ut()
     printf("-- poly_cov_ut\n");
     int n = 0;
     double * P = new_square(&n);
-    poly_mult(P, n, 100.0, 100.0);
-    poly_print(stdout, P, n);
+    n = 4; // ignore imperfection
+    poly_mult(P, n, 100.0, 200.0);
+
+    char * oname = malloc(50);
+    int nrot = 16;
+    for(int kk = 0; kk < nrot; kk++)
+    {
+        sprintf(oname, "rot%02d.svg", kk);
+        poly_to_svg(P, n, oname);
+        poly_rotate(P, n, 0, 0, M_PI / (double) nrot);
+    }
+    free(oname);
+
+
     double * C = poly_cov(P, n);
     printf("  - Translating by (.1, .2)\n");
     free(C);

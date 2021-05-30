@@ -25,6 +25,7 @@ poly_props * poly_props_new()
     props->measured = 0;
     props->ConvexArea = -1;
     props->Solidity = -1;
+    props->Comment = NULL;
     return props;
 }
 
@@ -42,6 +43,10 @@ void poly_props_free(poly_props ** PP)
     if(P->BoundingBox != NULL)
     {
         free(P->BoundingBox);
+    }
+    if(P->Comment != NULL)
+    {
+        free(P->Comment);
     }
     free(PP[0]);
     PP[0] = NULL;
@@ -94,6 +99,10 @@ void poly_props_print(FILE * fout, poly_props * props)
     fprintf(fout, "  EquivDiameter: %f\n", props->EquivDiameter);
     fprintf(fout, "  Solidity: %f\n", props->Solidity);
     fprintf(fout, "  Perimeter: %f\n", props->Perimeter);
+    if(props->Comment != NULL)
+    {
+        fprintf(fout, "  Comment %s\n", props->Comment);
+    }
     return;
 }
 
@@ -1013,6 +1022,17 @@ void poly_to_svg(double * P, int n, char * filename)
     double padding = 10;
     double * bbx = poly_bbx(P, n);
 
+    double wx = bbx[1]-bbx[0];
+    double wy = bbx[3]-bbx[2];
+    if(wx > wy)
+    {
+        bbx[2] -= (wx-wy)/2;
+        bbx[3] += (wx-wy)/2;
+    } else {
+        bbx[0] -= (wy-wx)/2;
+        bbx[1] += (wy-wx)/2;
+    }
+
     //// Initialization
     cairo_surface_t *surface;
     cairo_t *cr;
@@ -1070,11 +1090,9 @@ void poly_to_svg(double * P, int n, char * filename)
         printf("Could not calculate the convex hull\n");
     }
 
-
-
     //// Perform the feature extraction
     poly_props * props = poly_measure(P, n);
-    printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
+    //printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
     char *bp;
     size_t size;
     FILE *stream =  open_memstream (&bp, &size);
@@ -1086,10 +1104,13 @@ void poly_to_svg(double * P, int n, char * filename)
     printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
     fflush(stdout);
 
-    cairo_set_source_rgba(cr, 0, 1, 1, 1);
-    cairo_set_line_width(cr, 4);
+    cairo_set_source_rgba(cr, .5, 0, .5, 1);
+    cairo_set_line_width(cr, 2);
     cairo_move_to(cr, 0.75*w, 0.5*h);
     cairo_rel_line_to(cr, 200.0*props->MajorDirection[0], 200.0*props->MajorDirection[1]);
+    cairo_stroke(cr);
+    cairo_move_to(cr, 0.75*w, 0.5*h);
+    cairo_rel_line_to(cr, -200.0*props->MajorDirection[0], -200.0*props->MajorDirection[1]);
     cairo_stroke(cr);
     poly_props_free(&props);
 
