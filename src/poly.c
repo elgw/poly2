@@ -202,7 +202,7 @@ poly_props * poly_measure(const double * P, int n)
     props->MajorDirection = malloc(2*sizeof(double));
     eigenvector_sym_22(COV[0], COV[1], COV[2], l0,
                        props->MajorDirection, props->MajorDirection+1);
-    printf("!!?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
+    //printf("!!?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
     free(COV);
 
     if(1){
@@ -608,7 +608,7 @@ double poly_area_rourke(const double * P, int n)
     }
     a /= 2.0;
     assert( fabs(a - poly_area(P, n)) < 1e-6);
-    printf("a = %f, ag = %f\n", a, poly_area(P,n));
+    //printf("a = %f, ag = %f\n", a, poly_area(P,n));
 
     return a;
 }
@@ -686,8 +686,8 @@ static void eigenvector_sym_22(double a, double b, double c, double l, double * 
     // to eigenvalue l
     double q = pow(b, 2) + pow(a-l, 2);
     double r = pow(c-l, 2) + pow(b, 2);
-    printf("a = %f, b = %f, c = %f\n", a, b, c);
-    printf("l = %f, q = %f, r = %f\n", l, q, r);
+    //printf("a = %f, b = %f, c = %f\n", a, b, c);
+    //printf("l = %f, q = %f, r = %f\n", l, q, r);
 
     if(q > r)
     {
@@ -717,7 +717,7 @@ static void eigenvalue_sym_22(double a, double b, double c, double * l0, double 
     double q = 0.5*sqrt( pow(a-c, 2) + 4*pow(b, 2));
     l0[0] = p + q;
     l1[0] = p - q;
-    printf("l0: %f, l1: %f\n", l0[0], l1[0]);
+    //printf("l0: %f, l1: %f\n", l0[0], l1[0]);
 }
 
 
@@ -728,7 +728,7 @@ double poly_orientation_with_COV(double * COV)
     double b = COV[1];
     double c = COV[2];
 
-    printf("COV = [[%f, %f]; [%f, %f]]\n", a, b, b, c);
+    //printf("COV = [[%f, %f]; [%f, %f]]\n", a, b, b, c);
 
     double orientation = 1.0/2.0*M_PI/2.0;
     if((a-c) != 0)
@@ -885,22 +885,28 @@ static double _poly_hull_rcl(const double * A, const double * B, const double * 
     // One possible implementation of the (a, b, c)-function from the paper
     // used to determine if C is to the right or left of the A->B vector
     // splitting the plane
+    if(C == A || C == B)
+    {
+        // Guards against some weird problems
+        return 0;
+    }
+
     double qx = B[0] - A[0];
     double qy = B[1] - A[1];
     double rx = C[0] - A[0];
     double ry = C[1] - A[1];
-    return qx*ry - qy*rx;
+    double val = qx*ry - qy*rx;
+    return val;
 }
 
-static void _poly_hull_push(int * Q, int * b, int * t, int v)
+static void _poly_hull_push(int * Q, int * t, int v)
 {
     Q[++t[0]]=v;
 }
 
-static void _poly_hull_insert(int * Q, int * b, int * t, int v)
+static void _poly_hull_insert(int * Q, int * b, int v)
 {
     Q[--b[0]]=v;
-    assert(b[0] >= 0);
 }
 
 double * poly_hull(const double * P, int n, int * h)
@@ -909,62 +915,81 @@ double * poly_hull(const double * P, int n, int * h)
     // On-Line Construction of the Convex Hull of a Simple Polyline
     // A. Melkman, Inf. Process. Lett., 1987 (25), pp. 11-12
 
+    if(n<4)
+    {
+        // yes, ignoring also triangles.
+        goto leave;
+    }
 
     // A dequeue implemented as a redundant array.
-    size_t size_Q = 2*n;
-    int * Q = malloc(size_Q*sizeof(int));
+    size_t nQ = 2*n;
+    int * Q = malloc(nQ*sizeof(int));
     int b = n; // Index of bottom element
     int t = b-1; // Index of top element
 
 /// 1. -- initialization
     if( _poly_hull_rcl(P, P+2, P+4) > 0)
     {
-        _poly_hull_push(Q, &b, &t, 0);
-        _poly_hull_push(Q, &b, &t, 1);
+        _poly_hull_push(Q, &t, 0);
+        _poly_hull_push(Q, &t, 1);
     } else {
-        _poly_hull_push(Q, &b, &t, 1);
-        _poly_hull_push(Q, &b, &t, 0);
+        _poly_hull_push(Q, &t, 1);
+        _poly_hull_push(Q, &t, 0);
     }
-    _poly_hull_push(Q, &b, &t, 2);
-    _poly_hull_insert(Q, &b, &t, 2);
+    _poly_hull_push(Q, &t, 2);
+    _poly_hull_insert(Q, &b, 2);
     int idx = 3;
+
+
+    // TODO: Consider adding a counter to abort when too many
+    // iterations has passed.
 label2:
+    //printf("n = %d, b = %d, t = %d, idx = %d\n", n, b, t, idx);
     /// 2.
-    if(0){
-    printf("b = %d, t = %d\n", b, t);
-    for(int tt = b; tt<=t; tt++)
-    { printf("Q[%d] = %d\n", tt, Q[tt]);}
-    fflush(stdout);
-    }
-    while(! ( (_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) < 0) |
+
+    while(! ( (_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) < 0) ||
               (_poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) < 0)  ) )
     {
         idx++;
         // "The algorithm halts when the input is exhausted"
-        if(idx == n)
+        if(idx >= n)
+        {
             goto done;
-
+        }
     }
+
     /// 3.
     while(!( _poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) > 0))
     {
         t--; // pop
-        assert(t>=b);
+        if(t - b < 2)
+        {
+            // Needed for non-simple or wrongly oriented polygons
+            goto fail;
+        }
+        assert(t>b);
     }
-    _poly_hull_push(Q, &b, &t, idx);
-    assert(t < size_Q);
+    _poly_hull_push(Q, &t, idx);
+
     /// 4.
     while(!(_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) > 0))
     {
         b++; // remove
-        assert(t>=b);
+        if(t-b < 2)
+        {
+            // Possibly needed for non-simple or wrongly oriented polygons
+            goto fail;
+        }
+        assert(t>b);
     }
-    _poly_hull_insert(Q, &b, &t, idx);
+
+    _poly_hull_insert(Q, &b, idx);
     goto label2;
 
 done: ;
     // Q[t] and Q[b] "will always refer to the same vertex"
     // hence we copy only until Q[b-1]
+    assert(Q[t] == Q[b]);
     int nH = t-b;
     double * H = malloc(nH*2*sizeof(double));
     int row = 0; // output row
@@ -977,6 +1002,13 @@ done: ;
     h[0] = nH;
     free(Q);
     return H;
+
+fail: ;
+    free(Q);
+
+leave: ;
+    h[0] = 0;
+    return NULL;
 }
 
 static void draw_poly(cairo_t * cr, double * X, double * Y, int n,
@@ -1064,10 +1096,12 @@ void poly_to_svg(double * P, int n, char * filename)
     //// Draw wire-frame for convex hull
     int nH = 0;
     double * H = poly_hull(P, n, &nH);
+    if(0){
     printf("P:\n");
     poly_print(stdout, P, n);
     printf("H:\n");
     poly_print(stdout, H, nH);
+    }
 
     if(H != NULL)
     {
@@ -1101,7 +1135,7 @@ void poly_to_svg(double * P, int n, char * filename)
     fclose(stream);
 
 
-    printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
+    //printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
     fflush(stdout);
 
     cairo_set_source_rgba(cr, .5, 0, .5, 1);

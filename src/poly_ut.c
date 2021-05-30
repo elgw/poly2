@@ -11,52 +11,101 @@ static double timespec_diff(struct timespec* end, struct timespec * start)
     return elapsed;
 }
 
-double * new_square(int * n)
+double * new_poly_rand(int n)
+{
+    // Polygon with n vertices at random location.
+    double * P = malloc(2*n*sizeof(double));
+    for(int kk = 0; kk<2*n; kk++)
+    {
+        P[kk] = (double) rand() / (double) RAND_MAX;
+    }
+    return P;
+}
+
+double * new_poly_square(int * n)
 {
     double * P = malloc(10*sizeof(double));
-    P[0] = 0; P[2] = 1; P[4] = 1; P[6] = 0; P[8] = -.1;
+    P[0] = 0; P[2] = 1; P[4] = 1; P[6] = 0; P[8] = .1;
     P[1] = 0; P[3] = 0; P[5] = 1; P[7] = 1; P[9] = .4;
     n[0] = 5; // 4 corners
     //poly_reverse(P, 4);
     return P;
 }
 
+void poly_hull_ut()
+{
+
+    printf(" -> poly_hull\n");
+
+    // Should return null when less than 3 points
+    int nH = -1;
+    double * H = NULL;
+    for(int kk = 0; kk<3; kk++)
+    {
+        H = poly_hull(NULL, kk, &nH);
+        assert(H == NULL);
+        assert(nH == 0);
+    }
+
+    // Should be able to handle random polygons without crashing
+    for(int kk = 0; kk < 10000; kk++)
+    {
+        int nP = 1+rand() % 100;
+        double * P = new_poly_rand(nP);
+        //poly_print(stdout, P, nP);
+        H = poly_hull(P, nP, &nH);
+        free(P);
+        if(H != NULL)
+        {
+            free(H);
+        }
+    }
+
+    return;
+}
+
 void poly_area_ut()
 {
-    double * P = malloc(12*sizeof(double));
-    printf("poly_area(NULL) = %f\n", poly_area(NULL, 0));
-    P[0] = 0; P[1] = 0;
-    printf("poly_area([0,0]) = %f\n", poly_area(P, 1));
-    P[2] = 1; P[3] = 1;
-    printf("poly_area([[0,0], [1, 1]]) = %f\n", poly_area(P, 2));
-    P[4] = 1;
-    P[5] = 0;
-    printf("poly_area([[0,0], [1, 1], [1,0]]) = %f\n", poly_area(P, 3));
-    poly_print(stdout, P, 3);
+    double sum = 0;
+    printf(" -> poly_area\n");
+    // Should return 0 for points and lines
+    double * P = new_poly_rand(2);
+    for(int kk = 0; kk<3; kk++)
+    {
+        assert(poly_area(P, kk) == 0);
+    }
     free(P);
+
+    // Test random input;
+    for(int kk = 0; kk<10000; kk++)
+    {
+        int n = rand() % 1000;
+        P = new_poly_rand(n);
+        sum += poly_area(P, n);
+        free(P);
+    }
+
     int n = 0;
-    P = new_square(&n);
-    poly_print(stdout, P, n);
+    P = new_poly_square(&n);
+    assert(poly_area(P, 4) == 1);
     free(P);
+    printf("\t%f\n", sum);
 }
 
 void poly_cbinter_ut()
 {
+    printf(" -> poly_cbinter\n");
     int n = 0;
-    double * P = new_square(&n);
-    printf("Square:\n");
-    poly_print(stdout, P, n);
+    double * P = new_poly_square(&n);
+    printf("\tcreating cbsquare2.svg\n");
     int nI = 0;
     double * I = poly_cbinterp(P, n, 2, &nI);
-    poly_to_svg(I, nI, "test2.svg");
-    printf("Interpolated square:\n");
-    poly_print(stdout, I, nI);
+    poly_to_svg(I, nI, "cbsquare2.svg");
     free(I);
 
+    printf("\tcreating cbsquare8.svg\n");
     I = poly_cbinterp(P, n, 8, &nI);
-    poly_to_svg(I, nI, "test8.svg");
-    printf("Interpolated square:\n");
-    poly_print(stdout, I, nI);
+    poly_to_svg(I, nI, "cbsquare8.svg");
     free(I);
     free(P);
 
@@ -67,7 +116,7 @@ void poly_com_ut()
 {
     printf("-- poly_com_ut\n");
     int n = 0;
-    double * P = new_square(&n);
+    double * P = new_poly_square(&n);
 
 
     poly_print(stdout, P, n);
@@ -91,17 +140,18 @@ void poly_cov_ut()
 {
     printf("-- poly_cov_ut\n");
     int n = 0;
-    double * P = new_square(&n);
-    n = 4; // ignore imperfection
-    poly_mult(P, n, 100.0, 200.0);
+    double * P = new_poly_square(&n);
+    //n = 4; // ignore imperfection
+    poly_translate(P, n, 50, -50);
+    poly_mult(P, n, 10.0, 20.0);
 
     char * oname = malloc(50);
-    int nrot = 16;
+    int nrot = 32;
     for(int kk = 0; kk < nrot; kk++)
     {
         sprintf(oname, "rot%02d.svg", kk);
         poly_to_svg(P, n, oname);
-        poly_rotate(P, n, 0, 0, M_PI / (double) nrot);
+        poly_rotate(P, n, 0, 0, 2*M_PI / (double) nrot);
     }
     free(oname);
 
@@ -120,12 +170,12 @@ void poly_cov_ut()
     free(C);
     printf("  - Rotating by 0.4\n");
     poly_rotate(P, n, 0.0, 0.0, 0.4);
-    poly_print(stdout, P, n);
+    //poly_print(stdout, P, n);
     poly_orientation(P, n);
     printf(" - Multiplying by 1, 1.01\n");
     poly_mult(P, n, 1.0, 1.01);
     C = poly_cov(P, n);
-    printf("C: [%f, %f; %f, %f]\n", C[0], C[1], C[1], C[2]);
+    //printf("C: [%f, %f; %f, %f]\n", C[0], C[1], C[1], C[2]);
     //getchar();
     free(C);
     poly_orientation(P, n);
@@ -143,6 +193,7 @@ void benchmark()
     #endif
     int V = 32;
     printf("Benchmarking with %d polygons with %d vertices\n", N, V);
+    fflush(stdout);
     double * P = malloc(V*2*sizeof(double));
     double atotal = 0;
     struct timespec tstart, tend;
@@ -200,11 +251,13 @@ int main(int argc, char ** argv)
         return 0;
     }
 
-    benchmark();
-
+    poly_hull_ut();
     poly_area_ut();
     poly_cbinter_ut();
     poly_com_ut();
     poly_cov_ut();
+    benchmark();
+
+
     return 0;
 }
