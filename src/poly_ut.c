@@ -224,6 +224,14 @@ void benchmark()
     #endif
 }
 
+void non_simple()
+{
+    printf(" -> non_simple.svg\n");
+    double * P = new_poly_rand(100);
+    poly_to_svg(P, 100, "non_simple.svg");
+    free(P);
+}
+
 int main(int argc, char ** argv)
 {
     if(argc > 1)
@@ -251,6 +259,8 @@ int main(int argc, char ** argv)
         return 0;
     }
 
+
+    non_simple();
     poly_hull_ut();
     poly_area_ut();
     poly_cbinter_ut();

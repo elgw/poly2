@@ -4,14 +4,16 @@ ldflags_ext=`pkg-config --libs gsl cairo pango pangocairo fontconfig`
 cflags_dbg=-Wall $(cflags_ext) -g
 ldflags_dbg=-lm $(ldflags_ext)
 
-cflags=-Wall $(cflags_ext) -O3 -march=native
+cflags=-Wall $(cflags_ext) -O3 -march=native -DNDEBUG
 ldflags=-lm $(ldflags_ext) -flto
 
-poly_ut:
+all: poly_ut poly_bench
+
+poly_ut: poly_ut.c
 	gcc $(cflags_dbg) poly_ut.c poly.c $(ldflags_dbg) -o poly_ut
 
-poly_bench:
+poly_bench: poly_ut.c
 	gcc $(cflags) poly_ut.c poly.c $(ldflags) -o poly_bench
 
-tcga_test:
+tcga_test: tcga_test.c
 	gcc $(cflags) tcga_test.c poly.c $(ldflags) -o tcga_test

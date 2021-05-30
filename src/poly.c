@@ -887,7 +887,8 @@ static double _poly_hull_rcl(const double * A, const double * B, const double * 
     // splitting the plane
     if(C == A || C == B)
     {
-        // Guards against some weird problems
+        // Wouldn't work with -march=native
+        // without this.
         return 0;
     }
 
