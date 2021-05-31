@@ -49,6 +49,7 @@ typedef struct{
     double EquivDiameter;
     double Solidity;
     double Perimeter;
+    double * COV;
     char * Comment;
 
     int measured;
@@ -93,12 +94,17 @@ double poly_orientation(const double * P, int n);
 // Using Melkmans O(n) algorithm.
 double * poly_hull(const double * P, int n, int * h);
 
+// returns M00, M10, M01, M20, M11, M02
+double * poly_moments_raw(const double * P, int n);
+
 // First raw moment = Area for positively oriented
 double poly_M00(const double * P, int n);
 double poly_M01(const double * P, int n);
 double poly_M10(const double * P, int n);
 double poly_M11(const double * P, int n);
 
+// covariance matrix using pre-calculated raw moments
+double * poly_cov_with_moments(const double * M);
 
 //
 // MANIPULATION

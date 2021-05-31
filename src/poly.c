@@ -25,6 +25,7 @@ poly_props * poly_props_new()
     props->measured = 0;
     props->ConvexArea = -1;
     props->Solidity = -1;
+    props->COV = NULL;
     props->Comment = NULL;
     return props;
 }
@@ -47,6 +48,10 @@ void poly_props_free(poly_props ** PP)
     if(P->Comment != NULL)
     {
         free(P->Comment);
+    }
+    if(P->COV != NULL)
+    {
+        free(P->COV);
     }
     free(PP[0]);
     PP[0] = NULL;
@@ -89,7 +94,11 @@ void poly_props_print(FILE * fout, poly_props * props)
     fprintf(fout, "  MajorAxisLength: %f\n", props->MajorAxisLength);
     fprintf(fout, "  MinorAxisLength: %f\n", props->MinorAxisLength);
     fprintf(fout, "  Eccentricity: %f\n", props->Eccentricity);
-
+    if(props->COV != NULL)
+    {
+        fprintf(fout, "  COV = [%f, %f; %f, %f]\n", props->COV[0], props->COV[1],
+                props->COV[1], props->COV[2]);
+    }
     double ori1 = props->Orientation;
     double ori2 = ori1 + M_PI;
 
@@ -181,29 +190,32 @@ poly_props * poly_measure(const double * P, int n)
     poly_props * props = poly_props_new();
     props->VertexOrder = poly_vertex_order(P, n);
     props->nVertices = n;
-    props->Area = poly_area(P, n);
     props->Perimeter = poly_circ(P, n);
     // etc ...
     props->BoundingBox = poly_bbx(P, n);
+
+    double * M = poly_moments_raw(P, n);
+    props->Area = M[0];
+
     props->Circularity = (4.0*props->Area*M_PI)/pow(props->Perimeter, 2);
     props->EquivDiameter = sqrt(4.0*props->Area/M_PI);
     //props->Solidity = props->Area/props->ConvexArea;
-    double * COV = poly_cov(P, n);
-    //printf("Cov = [%f, %f; %f, %f]\n", COV[0], COV[1], COV[1], COV[2]);
-    props->Orientation = poly_orientation_with_COV(COV);
-    props->Centroid = poly_com(P, n);
+    props->COV = poly_cov_with_moments(M);
+    props->Orientation = poly_orientation_with_COV(props->COV);
 
+    props->Centroid = malloc(2*sizeof(double));
+    props->Centroid[0] = M[1]/M[0];
+    props->Centroid[1] = M[2]/M[0];
 
     double l0, l1;
-    eigenvalue_sym_22(COV[0], COV[1], COV[2], &l0, &l1);
+    eigenvalue_sym_22(props->COV[0], props->COV[1], props->COV[2], &l0, &l1);
     props->MajorAxisLength = 4*sqrt(l0);
     props->MinorAxisLength = 4*sqrt(l1);
     props->Eccentricity = sqrt(1-l1/l0);
     props->MajorDirection = malloc(2*sizeof(double));
-    eigenvector_sym_22(COV[0], COV[1], COV[2], l0,
+    eigenvector_sym_22(props->COV[0], props->COV[1], props->COV[2], l0,
                        props->MajorDirection, props->MajorDirection+1);
     //printf("!!?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
-    free(COV);
 
     if(1){
     int nH = 0;
@@ -213,6 +225,8 @@ poly_props * poly_measure(const double * P, int n)
     props->Solidity = props->Area / props->ConvexArea;
     }
     props->measured = 1;
+
+    free(M);
     return props;
 }
 
@@ -736,6 +750,32 @@ double * poly_moments_raw(const double * P, int n)
     return M;
 }
 
+double * poly_cov_with_moments(const double * M)
+{
+    double M00 = M[0];
+    double M10 = M[1];
+    double M01 = M[2];
+    double M20 = M[3];
+    double M11 = M[4];
+    double M02 = M[5];
+
+
+    //    printf("M = %f %f %f %f %f %f\n", M00, M10, M01, M20, M11, M02);
+
+    double u11 = M11 - M10*M01/M00;
+    double u20 = M20 - M10/M00*M10;
+    double u02 = M02 - M01/M00*M01;
+    if(0){
+        printf(" -- Centered moments:\n");
+        printf("u20=%f, u11=%f, u02=%f\n", u20, u11, u02);
+    }
+    double * COV = malloc(3*sizeof(double));
+    COV[0] = u20/M00;
+    COV[1] = u11/M00;
+    COV[2] = u02/M00;
+    return COV;
+}
+
 double * poly_cov(const double * P, int n)
 {
     /* Covariance matrix.
@@ -747,31 +787,12 @@ double * poly_cov(const double * P, int n)
      * M10 is com_x, M01 is com_y
      */
 
-
     double * M = poly_moments_raw(P, n);
-    double M00 = M[0];
-    double M10 = M[1];
-    double M01 = M[2];
-    double M20 = M[3];
-    double M11 = M[4];
-    double M02 = M[5];
+    double * COV = poly_cov_with_moments(M);
     free(M);
-
-    //    printf("M = %f %f %f %f %f %f\n", M00, M10, M01, M20, M11, M02);
-
-    double u11 = M11 - M10*M01/M00;
-    double u20 = M20 - M10/M00*M10;
-    double u02 = M02 - M01/M00*M01;
-    if(0){
-    printf(" -- Centered moments:\n");
-    printf("u20=%f, u11=%f, u02=%f\n", u20, u11, u02);
-    }
-    double * COV = malloc(3*sizeof(double));
-    COV[0] = u20/M00;
-    COV[1] = u11/M00;
-    COV[2] = u02/M00;
     return COV;
 }
+
 
 
 static void eigenvector_sym_22(double a, double b, double c, double l, double * v0, double * v1)
@@ -1231,7 +1252,7 @@ void poly_to_svg(double * P, int n, char * filename)
 
 
     //printf("?? %f, %f\n", props->MajorDirection[0], props->MajorDirection[1]);
-    fflush(stdout);
+    //fflush(stdout);
 
     cairo_set_source_rgba(cr, .5, 0, .5, 1);
     cairo_set_line_width(cr, 2);
@@ -1243,8 +1264,9 @@ void poly_to_svg(double * P, int n, char * filename)
     cairo_stroke(cr);
     poly_props_free(&props);
 
+    #if 1
     //// Put some text
-    PangoFontDescription* font_description=pango_font_description_new();
+    PangoFontDescription* font_description = pango_font_description_new();
     pango_font_description_set_family(font_description, "Mono");
     pango_font_description_set_weight(font_description, PANGO_WEIGHT_BOLD);
     pango_font_description_set_absolute_size(font_description, 12*PANGO_SCALE);
@@ -1255,16 +1277,14 @@ void poly_to_svg(double * P, int n, char * filename)
     cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
     cairo_move_to (cr, 10.0, 20.0);
     pango_cairo_show_layout(cr, layout);
-
+#endif
     free(bp); // Free the feature text
 
-    // cairo_surface_write_to_svg(surface, filename);
-
-    //// Clean up
+    cairo_surface_destroy(surface); // Also writes to disk
     cairo_destroy(cr);
-    cairo_surface_destroy(surface);
     free(bbx);
-    // For clean(er) valgrind
-    //FcFini();
-    //cairo_debug_reset_static_data();
+    #if 1
+    pango_font_description_free(font_description);
+    g_object_unref(layout);
+    #endif
 }
