@@ -93,6 +93,13 @@ double poly_orientation(const double * P, int n);
 // Using Melkmans O(n) algorithm.
 double * poly_hull(const double * P, int n, int * h);
 
+// First raw moment = Area for positively oriented
+double poly_M00(const double * P, int n);
+double poly_M01(const double * P, int n);
+double poly_M10(const double * P, int n);
+double poly_M11(const double * P, int n);
+
+
 //
 // MANIPULATION
 //
@@ -111,8 +118,14 @@ void poly_rotate(double * P, int n, double x0, double y0, double theta);
 // Cubic spline interpolation
 double * poly_cbinterp(const double * P, int n, int upsampling, int * N);
 
+//
+// Input / Output
+//
+
+// Print polygon in a MATLAB compatible way
 void poly_print(FILE *, const double * P, int n);
 
+// Plot the polygon and write some of the Properties
 void poly_to_svg(double * P, int n, char *);
 
 /* Cubic spline interpolation of closed curve

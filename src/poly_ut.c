@@ -224,12 +224,27 @@ void benchmark()
     #endif
 }
 
+void counter_clockwise()
+{
+    printf(" -> counter_clockwise\n");
+    int nP = 0;
+    double * P = new_poly_square(&nP);
+    poly_print(stdout, P, nP);
+    poly_reverse(P, nP);
+    poly_print(stdout, P, nP);
+    printf("\tWriting counter_clockwise.svg\n");
+    poly_to_svg(P, nP, "counter_clockwise.svg");
+    free(P);
+    return;
+}
+
 void non_simple()
 {
     printf(" -> non_simple.svg\n");
     double * P = new_poly_rand(100);
     poly_to_svg(P, 100, "non_simple.svg");
     free(P);
+    return;
 }
 
 int main(int argc, char ** argv)
@@ -261,6 +276,7 @@ int main(int argc, char ** argv)
 
 
     non_simple();
+    counter_clockwise();
     poly_hull_ut();
     poly_area_ut();
     poly_cbinter_ut();

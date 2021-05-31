@@ -379,8 +379,7 @@ void poly_print(FILE * fid, const double * P, int n)
     //printf("Circ(P) = %f\n", poly_circ(P, n));
 }
 
-
-void com_accumulate(double * com, const double * p, const double * q)
+double poly_M10_term(const double * p, const double * q)
 {
     // Centre of mass, contour integral between p and q
     // Using Greens formula
@@ -403,16 +402,36 @@ void com_accumulate(double * com, const double * p, const double * q)
     double beta = dx*py + dy*px;
     double gamma = dx*dy;
 
-    double comx = -dx*(alpha + beta/2.0 + gamma/3.0);
-    double comy = dy*(alpha + beta/2.0 + gamma/3.0);
-
-    //printf("(%f,%f) -> (%f, %f) com: (%f, %f)\n", p[0], p[1], q[0], q[1], comx, comy);
-
-    com[0] += comx;
-    com[1] += comy;
+    return -dx*(alpha + beta/2.0 + gamma/3.0);
 }
 
-double poly_accumulate_M20(const double * p, const double * q)
+double poly_M01_term(const double * p, const double * q)
+{
+    // Centre of mass, contour integral between p and q
+    // Using Greens formula
+    // for x:
+    // dw = x dx dy
+    // w = -1/2 xy dx
+
+    // for y
+    // dw = y dx dy
+    // w = -1/2 xy dy
+
+    double px = p[0];
+    double py = p[1];
+    double qx = q[0];
+    double qy = q[1];
+    double dx = qx - px;
+    double dy = qy - py;
+
+    double alpha = px*py;
+    double beta = dx*py + dy*px;
+    double gamma = dx*dy;
+
+    return dy*(alpha + beta/2.0 + gamma/3.0);
+}
+
+double poly_M20_term(const double * p, const double * q)
 {
     // dP/dy = -x*x
     // P = x*x*y/2
@@ -434,7 +453,7 @@ double poly_accumulate_M20(const double * p, const double * q)
     return M20;
     }
 
-double poly_accumulate_M11(const double * p, const double * q)
+double poly_M11_term(const double * p, const double * q)
 {
     // dQ/dy = x*y
     // Q = x*x*y/2
@@ -456,7 +475,7 @@ double poly_accumulate_M11(const double * p, const double * q)
     return M11;
 }
 
-double poly_accumulate_M02(const double * p, const double * q)
+double poly_M02_term(const double * p, const double * q)
 {
     // dQ/dx = y*y
     // Q = x*y*y
@@ -478,39 +497,77 @@ double poly_accumulate_M02(const double * p, const double * q)
     return M02;
 }
 
-double * poly_com(const double * P, int n)
+double poly_M10(const double * P, int n)
 {
     if(n == 0)
     {
-        return NULL;
+        return 0;
     }
-    double * cm = malloc(2*sizeof(double));
-    cm[0] = 0; cm[1] = 0;
+
+    double M10 = 0;
     if(n < 3)
     {
         for(int kk = 0; kk<n; kk++)
         {
-            cm[0] += P[2*kk];
-            cm[1] += P[2*kk+1];
+            M10 += P[2*kk];
         }
-        cm[0] /= (double) n;
-        cm[1] /= (double) n;
-        return cm;
+        M10 /= (double) n;
+        return M10;
     }
 
     const double * p = P + (2*n-2);
     const double * q = P;
 
-    com_accumulate(cm, p, q);
+    M10 += poly_M10_term(p, q);
     for(int kk = 0; kk+1<n; kk++)
     {
         p = P + 2*kk;
         q = P + 2*(kk+1);
-        com_accumulate(cm, p, q);
+        M10 += poly_M10_term(p, q);
     }
-    double a = poly_area(P, n);
-    cm[0] /= a;
-    cm[1] /= a;
+    return M10;
+}
+
+double poly_M01(const double * P, int n)
+{
+    if(n == 0)
+    {
+        return 0;
+    }
+
+    double M01 = 0;
+    if(n < 3)
+    {
+        for(int kk = 0; kk<n; kk++)
+        {
+            M01 += P[2*kk]+1;
+        }
+        M01 /= (double) n;
+        return M01;
+    }
+
+    const double * p = P + (2*n-2);
+    const double * q = P;
+
+    M01 += poly_M01_term(p, q);
+    for(int kk = 0; kk+1<n; kk++)
+    {
+        p = P + 2*kk;
+        q = P + 2*(kk+1);
+        M01 += poly_M01_term(p, q);
+    }
+    return M01;
+}
+
+
+double * poly_com(const double * P, int n)
+{
+    double M00 = poly_M00(P, n);
+    double M01 = poly_M01(P, n);
+    double M10 = poly_M10(P, n);
+    double * cm = malloc(2*sizeof(double));
+    cm[0] = M10/M00;
+    cm[1] = M01/M00;
     return cm;
 }
 
@@ -528,12 +585,12 @@ double poly_M20(const double * P, int n)
     const double * p = P + (2*n-2);
     const double * q = P;
 
-    double M20 = poly_accumulate_M20(p, q);
+    double M20 = poly_M20_term(p, q);
     for(int kk = 0; kk+1<n; kk++)
     {
         q = P + 2*(kk+1);
         p = P + 2*kk;
-        M20 += poly_accumulate_M20(p, q);
+        M20 += poly_M20_term(p, q);
     }
 
     return M20;
@@ -551,12 +608,12 @@ double poly_M11(const double * P, int n)
     const double * p = P + (2*n-2);
     const double * q = P;
 
-    double M11 = poly_accumulate_M11(p, q);
+    double M11 = poly_M11_term(p, q);
     for(int kk = 0; kk+1<n; kk++)
     {
         q = P + 2*(kk+1);
         p = P + 2*kk;
-        M11 += poly_accumulate_M11(p, q);
+        M11 += poly_M11_term(p, q);
     }
 
     return M11;
@@ -575,18 +632,16 @@ double poly_M02(const double * P, int n)
     const double * p = P + (2*n-2);
     const double * q = P;
 
-    double M02 = poly_accumulate_M02(p, q);
+    double M02 = poly_M02_term(p, q);
     for(int kk = 0; kk+1<n; kk++)
     {
         q = P + 2*(kk+1);
         p = P + 2*kk;
-        M02 += poly_accumulate_M02(p, q);
+        M02 += poly_M02_term(p, q);
     }
 
     return M02;
 }
-
-
 
 double poly_area_rourke(const double * P, int n)
 {
@@ -613,7 +668,12 @@ double poly_area_rourke(const double * P, int n)
     return a;
 }
 
-double poly_area(const double * P, int n)
+double poly_M00_term(const double * p, const double * q)
+{
+    return 0.5*(p[0]*q[1] - q[0]*p[1]);
+}
+
+double poly_M00(const double * P, int n)
 {
     // From Greens formula
     if(n<3)
@@ -623,18 +683,57 @@ double poly_area(const double * P, int n)
 
     const double * p = P + (2*n-2);
     const double * q = P;
-    double a = p[0]*q[1] - q[0]*p[1];
+    //double a = p[0]*q[1] - q[0]*p[1];
+    double a = poly_M00_term(p, q);
 
     for(int kk = 0; kk+1<n; kk++)
     {
         q = P + 2*(kk+1);
         p = P + 2*kk;
-        a += p[0]*q[1] - q[0]*p[1];
+        a += poly_M00_term(p, q);
     }
 
-    a /= 2.0;
-
     return a;
+}
+
+double poly_area(const double * P, int n)
+{
+    return poly_M00(P, n);
+}
+
+double * poly_moments_raw(const double * P, int n)
+{
+    double * M = malloc(6*sizeof(double));
+    memset(M, 0, 6*sizeof(double));
+
+    if(n < 3)
+    {
+        return M;
+    }
+
+    const double * p = P + (2*n-2);
+    const double * q = P;
+
+    M[0] += poly_M00_term(p, q);
+    M[1] += poly_M10_term(p, q);
+    M[2] += poly_M01_term(p, q);
+    M[3] += poly_M20_term(p, q);
+    M[4] += poly_M11_term(p, q);
+    M[5] += poly_M02_term(p, q);
+
+    for(int kk = 0; kk+1<n; kk++)
+    {
+        q = P + 2*(kk+1);
+        p = P + 2*kk;
+        M[0] += poly_M00_term(p, q);
+        M[1] += poly_M10_term(p, q);
+        M[2] += poly_M01_term(p, q);
+        M[3] += poly_M20_term(p, q);
+        M[4] += poly_M11_term(p, q);
+        M[5] += poly_M02_term(p, q);
+    }
+
+    return M;
 }
 
 double * poly_cov(const double * P, int n)
@@ -648,22 +747,17 @@ double * poly_cov(const double * P, int n)
      * M10 is com_x, M01 is com_y
      */
 
-    double M00 = poly_area(P, n);
 
-    double * C = poly_com(P, n);
-    double M10 = C[0]*M00;
-    double M01 = C[1]*M00;
-    free(C);
-    double M20 = poly_M20(P, n);
-    double M02 = poly_M02(P, n);
-    double M11 = poly_M11(P, n);
+    double * M = poly_moments_raw(P, n);
+    double M00 = M[0];
+    double M10 = M[1];
+    double M01 = M[2];
+    double M20 = M[3];
+    double M11 = M[4];
+    double M02 = M[5];
+    free(M);
 
-    if(0){
-    printf(" -- Raw moments:\n");
-    printf("M00=%f\n", M00);
-    printf("M10=%f, M01=%f\n", M10, M01);
-    printf("M20=%f, M11=%f, M02=%f\n", M20, M11, M02);
-    }
+    //    printf("M = %f %f %f %f %f %f\n", M00, M10, M01, M20, M11, M02);
 
     double u11 = M11 - M10*M01/M00;
     double u20 = M20 - M10/M00*M10;

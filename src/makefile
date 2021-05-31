@@ -9,11 +9,11 @@ ldflags=-lm $(ldflags_ext) -flto
 
 all: poly_ut poly_bench
 
-poly_ut: poly_ut.c
+poly_ut: poly_ut.c poly.c poly.h
 	gcc $(cflags_dbg) poly_ut.c poly.c $(ldflags_dbg) -o poly_ut
 
-poly_bench: poly_ut.c
+poly_bench: poly_ut.c poly.c poly.h
 	gcc $(cflags) poly_ut.c poly.c $(ldflags) -o poly_bench
 
-tcga_test: tcga_test.c
+tcga_test: tcga_test.c poly.c poly.h
 	gcc $(cflags) tcga_test.c poly.c $(ldflags) -o tcga_test
