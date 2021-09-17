@@ -3,19 +3,15 @@
 Polygons with n vertices are stored with x and y coordinates interlaced,
 i.e. x0, y0, x1, x2, ... typically denoted P
 
+Please see README.md for a gentle introduction.
+
 [sunday] Daniel Sunday, Practical Geometry Algorithms: with C++ Code, 979-8749449730
-
-TODO:
- - Malloc-free versions of all routines, using supplied memory buffers.
- - Principal directions.
- - Minimal bounding box (oriented according to the principal directions).
- - For convex hull, consider Graham and Yao: https://doi.org/10.1016/0196-6774(83)90013-5
- - ...
 */
-
 
 #ifndef __poly_h__
 #define __poly_h__
+
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <assert.h>
@@ -23,6 +19,7 @@ TODO:
 #include <math.h>
 #include <string.h>
 #include <gsl/gsl_linalg.h>
+
 #include <cairo.h>
 #include <cairo-svg.h>
 #include <fontconfig/fontconfig.h>
@@ -36,11 +33,11 @@ typedef struct{
     int nVertices;
     int VertexOrder; // clockwise, anticlockwise or error
     double Area;
-    double * Centroid;
-    double * BoundingBox;
+    double Centroid[2];
+    double BoundingBox[4];
     double MajorAxisLength;
     double MinorAxisLength;
-    double * MajorDirection;
+    double MajorDirection[2];
     double Eccentricity;
     double Orientation; // Using atan2 on principal axes
     //double * ConvexHull;
@@ -49,9 +46,8 @@ typedef struct{
     double EquivDiameter;
     double Solidity;
     double Perimeter;
-    double * COV;
+    double COV[3];
     char * Comment;
-
     int measured;
 } poly_props;
 
@@ -64,8 +60,8 @@ poly_props * poly_measure(const double * P, int n);
 void poly_props_free(poly_props**);
 void poly_props_print(FILE * fout, poly_props * props);
 
-
 // Vertex order: we only support clockwise
+// The measurement can only be trusted for simple polygons.
 int poly_vertex_order(const double * P, int n);
 
 // Area for polygon
@@ -77,14 +73,10 @@ double poly_circ(const double * P, int n);
 
 // bounding box of polygon, minx, maxx, miny, maxy
 double * poly_bbx(const double * P, int n);
+void poly_bbx_buff(const double * P, int n, double * buff);
 
 // Centre off mass
 double * poly_com(const double * P, int n);
-
-// Covariance matrix
-// Returns comx, comy, c11, c12, c22
-double * poly_cov(const double * P, int n);
-
 
 // Extracts the covariance matrix and gets orientation
 // from eigenvectors
@@ -92,32 +84,40 @@ double poly_orientation(const double * P, int n);
 
 // Returns the convex hull of P with h points
 // Using Melkmans O(n) algorithm.
+// Returns NULL/sets h[0] to 0 when
+// less than 4 points or the algorithm fails.
+// It shouldn't fail for positively oriented simple polygons
 double * poly_hull(const double * P, int n, int * h);
 
-// returns M00, M10, M01, M20, M11, M02
+// Raw moments up to order 2, returns M00, M10, M01, M20, M11, M02
 double * poly_moments_raw(const double * P, int n);
-
-// First raw moment = Area for positively oriented
+// Individual raw moments:
 double poly_M00(const double * P, int n);
 double poly_M01(const double * P, int n);
 double poly_M10(const double * P, int n);
+double poly_M20(const double * P, int n);
 double poly_M11(const double * P, int n);
+double poly_M02(const double * P, int n);
 
 // covariance matrix using pre-calculated raw moments
 double * poly_cov_with_moments(const double * M);
+void poly_cov_with_moments_buff(const double * M, double * buff);
+// Covariance matrix
+double * poly_cov(const double * P, int n);
 
 //
 // MANIPULATION
 //
 
-// Reverse the vertices in P
+// Reverse the order of vertices in P
 void poly_reverse(double * P, int n);
 
-// Multiply by v
+// Multiply x coordinates by vx, ...
 void poly_mult(double * P, int n, double vx, double vy);
 
 // Translation
 void poly_translate(double * P, int n, double dx, double dy);
+
 // Rotation around (x0, y0)
 void poly_rotate(double * P, int n, double x0, double y0, double theta);
 
@@ -134,19 +134,4 @@ void poly_print(FILE *, const double * P, int n);
 // Plot the polygon and write some of the Properties
 void poly_to_svg(double * P, int n, char *);
 
-/* Cubic spline interpolation of closed curve
- * https://mathworld.wolfram.com/CubicSpline.html
- *
- * asserts that the input domain is regularly spaced
- */
-
-// TODO
-// Interpolate with max delta or to a certain number of points
-// https://stats.stackexchange.com/questions/415974/how-to-find-the-covariance-matrix-of-a-polygon
-// Centre of mass // -- Greens theorem
-// Principal axes // -- Greens theorem
-// Extent of axes (project vertices on principal axes)
-// Smallest bounding box
-// polygon rasterization using the even-odd rule or nonzero winding number
-// Rourke Section 7.4
 #endif

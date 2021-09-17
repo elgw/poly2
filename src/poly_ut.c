@@ -187,7 +187,7 @@ void benchmark()
 {
 
     #ifdef NDEBUG
-    int N = 1000000;
+    int N = 10000000;
     #else
     int N = 100;
     #endif
@@ -195,13 +195,14 @@ void benchmark()
     printf("Benchmarking with %d polygons with %d vertices\n", N, V);
     fflush(stdout);
     double * P = malloc(V*2*sizeof(double));
+
     double atotal = 0;
     struct timespec tstart, tend;
     clock_gettime(CLOCK_REALTIME, &tstart);
     //printf("%d\n", kk);
     for(int ll = 0 ; ll<2*V; ll++)
     {
-        P[ll] = rand() / (double) RAND_MAX;
+           P[ll] = rand() / (double) RAND_MAX;
     }
     for(int kk = 0; kk < N; kk++)
     {
@@ -213,7 +214,7 @@ void benchmark()
     free(P);
     clock_gettime(CLOCK_REALTIME, &tend);
     double dt = timespec_diff(&tend, &tstart);
-    printf("Took: %f s, i.e. %f polygons / s\n", dt, (double) N / dt);
+    printf("Took: %.3f s, i.e. %.0f polygons / s\n", dt, (double) N / dt);
 #ifdef NDEBUG
     FILE * fout = fopen("benchmark.txt", "a");
     time_t now;
