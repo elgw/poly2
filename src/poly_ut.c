@@ -27,7 +27,7 @@ double * new_poly_square(int * n)
     double * P = malloc(10*sizeof(double));
     P[0] = 0; P[2] = 1; P[4] = 1; P[6] = 0; P[8] = .1;
     P[1] = 0; P[3] = 0; P[5] = 1; P[7] = 1; P[9] = .4;
-    n[0] = 5; // 4 corners
+    n[0] = 4; // 4 vertices
     //poly_reverse(P, 4);
     return P;
 }
@@ -258,7 +258,7 @@ int main(int argc, char ** argv)
             printf("An even number of values has to be give, (x0, y0), (x1, y1), ...\n");
             exit(1);
         }
-        n /= 2;
+        n /= 2; // Number of vertices
         double * P = malloc(2*n*sizeof(double));
         for(int kk = 1; kk < argc; kk++)
         {

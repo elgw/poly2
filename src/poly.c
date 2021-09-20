@@ -95,13 +95,15 @@ void poly_props_print(FILE * fout, poly_props * props)
 
 int poly_vertex_order(const double * P, int n)
 {
-    // Uses the method described in [sunday]
-    // Returns < 0 if clockwise and > 0 for counter-clockwise
-    // returns 0 for degenerate cases
-    // note that non-simple polygons might not return 0
+    /* Uses the method described in [sunday]
+     Returns < 0 if clockwise and > 0 for counter-clockwise
+     returns 0 for degenerate cases
+     note that non-simple polygons might not return 0
+    */
 
-    // 1/ Find the vertex with smallest y,
-    //    if more than one, pick the one with smallest x
+    /* 1/ Find the vertex with smallest y,
+        if more than one, pick the one with smallest x
+    */
     int idx = 0;
     double minx = P[0];
     double miny = P[1];
@@ -123,15 +125,16 @@ int poly_vertex_order(const double * P, int n)
     }
 
     double val = 0;
-    // 2. Return the orientation for idx-1, idx, idx+1
+    /* 2. Return the orientation for idx-1, idx, idx+1 */
     if (idx == 0)
     {
-        val = _is_left(P + 2*n-2, P, P+2);
+        val = _is_left(P + 2*n-2, P+0, P+2);
     }
     else
     {
         val = _is_left(P+2*idx-2, P+2*idx, P+2*idx+2);
     }
+
     if(val < 0)
     {
         return POLY_VERTEX_ORDER_CLOCKWISE;
@@ -161,7 +164,7 @@ void poly_reverse(double * P, int n)
     return;
 }
 
-poly_props * poly_measure(const double * P, int n)
+poly_props * poly_measure(const double * P, const int n)
 {
     poly_props * props = poly_props_new();
     props->VertexOrder = poly_vertex_order(P, n);
@@ -940,18 +943,21 @@ double coordscale(double x, double * bbx, double w, double padding)
 
 static double _is_left(const double * A, const double * B, const double * C)
 {
+    /* TODO: write description and test */
     return - _poly_hull_rcl(A, B, C);
 }
 
 static double _poly_hull_rcl(const double * A, const double * B, const double * C)
 {
-    // One possible implementation of the (a, b, c)-function from the paper
-    // used to determine if C is to the right or left of the A->B vector
-    // splitting the plane
+    /* One possible implementation of the (a, b, c)-function from the paper
+     used to determine if C is to the right or left of the A->B vector
+     splitting the plane
+    */
+
     if(C == A || C == B)
     {
-        // Wouldn't work with -march=native
-        // without this.
+        /* Wouldn't work with -march=native
+           without this. */
         return 0;
     }
 

@@ -55,8 +55,12 @@ typedef struct{
 // MEASUREMENTS
 //
 
-// "High Level" interface, i.e. measure most stuff in one go
+/* "High Level" interface, i.e. measure most stuff in one go
+   P is the vertices, (x0, y0), (x1, y1), ...
+   n is the number of vertices
+ */
 poly_props * poly_measure(const double * P, int n);
+
 void poly_props_free(poly_props**);
 void poly_props_print(FILE * fout, poly_props * props);
 
