@@ -128,6 +128,13 @@ void poly_rotate(double * P, int n, double x0, double y0, double theta);
 // Cubic spline interpolation
 double * poly_cbinterp(const double * P, int n, int upsampling, int * N);
 
+/* TODO
+Check if a polygon is simple
+Possible algorithm(s), see Bentley–Ottmann algorithm:
+https://en.wikipedia.org/wiki/Bentley%E2%80%93Ottmann_algorithm
+*/
+int poly_is_simple(const double * P, int n);
+
 //
 // Input / Output
 //
