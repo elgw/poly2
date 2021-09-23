@@ -920,7 +920,6 @@ int lines_intersect(const double * a0, const double * a1,
     if(denom == 0)
     {
         /* parallel possibly co-linear */
-        printf("denom=0\n");
 
         /* co-linear if (b0-a0) x (b1-a0) := C x D == 0 */
         double Cx = x3-x1; double Dx = x4-x1;
@@ -990,8 +989,10 @@ int poly_is_simple(const double * P, int n)
             {
             if(lines_intersect(a0, a1, b0, b1))
             {
+                if(0){
                 printf("(%f,%f)-(%f,%f) i (%f,%f)-(%f,%f)\n",
                        a0[0], a0[1], a1[0], a1[1], b0[0], b0[1], b1[0], b1[1]);
+                }
                 return 0;
             }
             }

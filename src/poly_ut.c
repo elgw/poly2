@@ -235,7 +235,7 @@ void counter_clockwise()
     poly_print(stdout, P, nP);
     printf("\tWriting counter_clockwise.svg\n");
     poly_to_svg(P, nP, "counter_clockwise.svg");
-    getchar();
+
     free(P);
     return;
 }
