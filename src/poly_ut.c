@@ -235,6 +235,7 @@ void counter_clockwise()
     poly_print(stdout, P, nP);
     printf("\tWriting counter_clockwise.svg\n");
     poly_to_svg(P, nP, "counter_clockwise.svg");
+    getchar();
     free(P);
     return;
 }
@@ -246,6 +247,56 @@ void non_simple()
     poly_to_svg(P, 100, "non_simple.svg");
     free(P);
     return;
+}
+
+void lines_intersect_ut(void)
+{
+    double P0[4] = {0, 0, 0, 0};
+    double P1[4] = {0, 0, 0, 0};
+    /* Cases where they intersect */
+
+    /* Same point */
+    assert(lines_intersect(P0, P0+2, P1, P1+2));
+    for(int kk = 0; kk<4; kk++)
+    {
+        P0[kk] = 1.123124;
+        P1[kk] = P0[kk];
+    }
+    assert(lines_intersect(P0, P0+2, P1, P1+2));
+
+    /* Point on line */
+    P0[0] = 0; P0[1] = 0; P0[2] = 0; P0[3] = 1;
+    P1[0] = 0; P1[1] = .5; P1[2] = 0; P1[3] = .5;
+    assert(lines_intersect(P0, P0+2, P1, P1+2));
+    assert(lines_intersect(P1, P1+2, P0, P0+2));
+    for(double theta = 0; theta < 2*M_PI; theta += 0.01)
+    {
+        double theta1 = theta+0.1;
+        P0[0] =  cos(theta);  P0[1] =  sin(theta);
+        P0[2] = -cos(theta);  P0[3] = -sin(theta);
+        P1[0] =  cos(theta1); P1[1] =  sin(theta1);
+        P1[2] = -cos(theta1); P1[3] = -sin(theta1);
+        if(0){
+        printf("%f %f %f %f  -- %f %f %f %f\n",
+               P0[0], P0[1], P0[2], P0[3],
+               P1[0], P1[1], P1[2], P1[3]);
+        }
+        assert(lines_intersect(P0, P0+2, P1, P1+2));
+        assert(lines_intersect(P1, P1+2, P0, P0+2));
+    }
+    /* When they should not intersect */
+    size_t n_total = 100000;
+    size_t n_intersect = 0;
+    for(size_t kk = 0; kk<n_total; kk++)
+    {
+        for(int ll = 0; ll<4; ll++)
+        {
+            P0[ll] = ((double) rand()/(double) RAND_MAX - 0.5)*100;
+            P1[ll] = ((double) rand()/(double) RAND_MAX - 0.5)*100;
+        }
+        n_intersect += lines_intersect(P0, P0+2, P1, P1+2);
+    }
+    printf("Intersection in %zu / %zu cases\n", n_intersect, n_total);
 }
 
 int main(int argc, char ** argv)
@@ -275,7 +326,7 @@ int main(int argc, char ** argv)
         return 0;
     }
 
-
+    lines_intersect_ut();
     non_simple();
     counter_clockwise();
     poly_hull_ut();

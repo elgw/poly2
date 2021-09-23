@@ -47,7 +47,8 @@ void poly_props_print(FILE * fout, poly_props * props)
         fprintf(fout, "  ! No measurements recorded\n");
         return;
     }
-    fprintf(fout, "  Simple: TODO\n");
+
+    fprintf(fout, "  Simple: %d\n", props->simple);
     fprintf(fout, "  Vertices: %d\n", props->nVertices);
     if(props->VertexOrder == POLY_VERTEX_ORDER_CLOCKWISE)
     {
@@ -64,11 +65,13 @@ void poly_props_print(FILE * fout, poly_props * props)
     fprintf(fout, "  BoundingBox: (%f, %f, %f, %f)\n",
             props->BoundingBox[0], props->BoundingBox[1],
             props->BoundingBox[2], props->BoundingBox[3]);
-
-    assert(props->Centroid[0] >= props->BoundingBox[0]);
-    assert(props->Centroid[0] <= props->BoundingBox[1]);
-    assert(props->Centroid[1] >= props->BoundingBox[2]);
-    assert(props->Centroid[1] <= props->BoundingBox[3]);
+    if(props->simple)
+    {
+        assert(props->Centroid[0] >= props->BoundingBox[0]);
+        assert(props->Centroid[0] <= props->BoundingBox[1]);
+        assert(props->Centroid[1] >= props->BoundingBox[2]);
+        assert(props->Centroid[1] <= props->BoundingBox[3]);
+    }
 
     fprintf(fout, "  MajorAxisLength: %f\n", props->MajorAxisLength);
     fprintf(fout, "  MinorAxisLength: %f\n", props->MinorAxisLength);
@@ -114,14 +117,16 @@ int poly_vertex_order(const double * P, int n)
         {
             continue;
         }
+
         double x = P[2*kk];
         if (y == miny) {
-            if (x < minx)
+            if (x > minx)
                 continue;
         }
         idx = kk;      // a new rightmost lowest vertex
-        minx = x;
         miny = y;
+        minx = x;
+
     }
 
     double val = 0;
@@ -129,6 +134,10 @@ int poly_vertex_order(const double * P, int n)
     if (idx == 0)
     {
         val = _is_left(P + 2*n-2, P+0, P+2);
+    }
+    else if (idx == n-1)
+    {
+        val = _is_left(P+2*idx-2, P+2*idx, P);
     }
     else
     {
@@ -167,6 +176,7 @@ void poly_reverse(double * P, int n)
 poly_props * poly_measure(const double * P, const int n)
 {
     poly_props * props = poly_props_new();
+    props->simple = poly_is_simple(P, n);
     props->VertexOrder = poly_vertex_order(P, n);
     props->nVertices = n;
     props->Perimeter = poly_circ(P, n);
@@ -846,6 +856,149 @@ double poly_circ(const double * P, int n)
     return c;
 }
 
+static int co_linear_overlap(const double * a0, const double * a1,
+                             const double * b0, const double * b1)
+{
+    /* Overlap of two co-linear line segments,
+       it is assumed that a0 != a1 */
+    assert(a0[0]-a1[0] != 0 || a0[1]-a1[1] != 0);
+
+    /* We set a0 as the reference point and
+       d = a1-a0 as the reference direction */
+    double dx = a1[0]-a0[0];
+    double dy = a1[1]-a0[1];
+    double n = sqrt( pow(dx, 2) + pow(dy, 2));
+    dx /= n; dy /= n;
+    /* line a on [r0, r1] */
+    double r0 = 0;
+    double r1  = dx*dx + dy*dy;
+    if(r0 > r1)
+    {
+        double temp = r1;
+        r1 = r0; r0 = temp;
+    }
+    /* line b on [t0, t1] */
+    double t0 = dx*(b0[0]-a0[0]) + dy*(b0[1]-a0[1]);
+    double t1 = dx*(b1[0]-a0[0]) + dy*(b1[1]-a0[1]);
+    if(t0 > t1)
+    {
+        double temp = t1;
+        t1 = t0; t0 = temp;
+    }
+    /* first end point of b in a (or both) */
+    if( t0 >= r0 && t1 <= r1)
+    {
+        return 1;
+    }
+    /* second end point of b in a */
+    if( t1 >= r0 && t1 <= r1)
+    {
+        return 1;
+    }
+    /* a inside b */
+    if(r0 <= t0 && r1 >= t1)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int lines_intersect(const double * a0, const double * a1,
+                   const double * b0, const double * b1)
+{
+    /* Determine if two line fragments have an intersection
+     * a = a0 + t(a0-a1)
+     * b = b0 + u(b0-b1)
+     *
+     * See Faster Line Segment Intersections
+     *     Franklin Antonio, Graphics Gems III
+     */
+    double x1 = a0[0]; double x2 = a1[0]; double x3 = b0[0]; double x4 = b1[0];
+    double y1 = a0[1]; double y2 = a1[1]; double y3 = b0[1]; double y4 = b1[1];
+
+    double denom = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
+    if(denom == 0)
+    {
+        /* parallel possibly co-linear */
+        printf("denom=0\n");
+
+        /* co-linear if (b0-a0) x (b1-a0) := C x D == 0 */
+        double Cx = x3-x1; double Dx = x4-x1;
+        double Cy = y3-y1; double Dy = y4-y1;
+        double cross = Cx * Dy - Cy * Dx;
+        if(cross != 0) /* WARNING: Not numerically stable ... */
+        {
+            return 0; /* Parallel but not co-linear */
+        }
+        /* if co-linear we have to check if the intervals overlap
+           possibly a0==a1 and/or b0==b1 and/or all are the same
+           E = a1-a0
+           F = b1-b0
+         */
+        double Ex = a1[0]-a0[0]; double Ey = a1[1]-a0[1];
+        double Fx = a1[0]-a0[0]; double Fy = a1[1]-a0[1];
+        if(Ex != 0 || Ey != 0)
+        {
+            return co_linear_overlap(a0, a1, b0, b1);
+        }
+        if(Fy != 0 || Fx != 0)
+        {
+            return co_linear_overlap(b0, b1, a0, a1);
+        }
+        if(a1[0] == b1[0])
+        {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+    /* td = t*denom */
+    double td = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4);
+    if(td/denom < 0 || td/denom > 1)
+    {
+        return 0;
+    }
+    double ud = (x2 - x1)*(y1 - y3) - (y2 - y1)*(x1 - x3);
+    if(ud/denom < 0 || ud/denom > 1)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+int poly_is_simple(const double * P, int n)
+{
+    /* Naive implementation, all vs all (except adjacent) */
+    for(int aa = 0; aa<n ; aa++)
+    {
+        const double * a0 = P + 2*aa;
+        const double * a1 = P + 2*(aa+1);
+        if(aa+1 == n)
+        {
+            a1 = P;
+        }
+        for(int bb = aa+2; bb<n; bb++)
+        {
+            const double * b0 = P + 2*bb;
+            const double * b1 = P + 2*(bb+1);
+            if(bb+1 == n)
+            {
+                b1 = P;
+            }
+            if(a0 != b1 && a1 != b0)
+            {
+            if(lines_intersect(a0, a1, b0, b1))
+            {
+                printf("(%f,%f)-(%f,%f) i (%f,%f)-(%f,%f)\n",
+                       a0[0], a0[1], a1[0], a1[1], b0[0], b0[1], b1[0], b1[1]);
+                return 0;
+            }
+            }
+        }
+    }
+    return 1;
+}
 
 double * poly_cbinterp(const double * P, int n, int upsampling, int * N)
 /* Interpolate the points in the polygon P

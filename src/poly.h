@@ -32,6 +32,7 @@ Please see README.md for a gentle introduction.
 typedef struct{
     int nVertices;
     int VertexOrder; // clockwise, anticlockwise or error
+    int simple;
     double Area;
     double Centroid[2];
     double BoundingBox[4];
@@ -128,13 +129,21 @@ void poly_rotate(double * P, int n, double x0, double y0, double theta);
 // Cubic spline interpolation
 double * poly_cbinterp(const double * P, int n, int upsampling, int * N);
 
-/* TODO
+/*
 Check if a polygon is simple
-Possible algorithm(s), see Bentley–Ottmann algorithm:
-https://en.wikipedia.org/wiki/Bentley%E2%80%93Ottmann_algorithm
+Possible algorithm(s):
+ - Bentley–Ottmann (to find all intersections)
+ https://en.wikipedia.org/wiki/Bentley%E2%80%93Ottmann_algorithm
+*/
+/*
+   Returns 1 if the polygon is free from intersections.
+   Note that this classification will always be affected by the
+   machine precision and the results are practically undefined
+   when edges/vertices are very close.
 */
 int poly_is_simple(const double * P, int n);
-
+int lines_intersect(const double * a0, const double * a1,
+                    const double * b0, const double * b1);
 //
 // Input / Output
 //
