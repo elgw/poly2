@@ -20,3 +20,8 @@ tcga_test: tcga_test.c poly.c poly.h
 
 poly: poly.c
 	gcc -c $(cflags) poly.c
+
+lpoly.so: poly.c poly_lua.c
+	gcc -c $(cflags) poly.c     -fPIC -g -Wall -o fpoly.o
+	gcc -c $(cflags) poly_lua.c -fPIC -g -Wall -o flpoly.o
+	gcc --shared fpoly.o flpoly.o $(ldflags) -o lpoly.so

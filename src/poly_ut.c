@@ -251,6 +251,7 @@ void non_simple()
 
 void lines_intersect_ut(void)
 {
+
     double P0[4] = {0, 0, 0, 0};
     double P1[4] = {0, 0, 0, 0};
     /* Cases where they intersect */
@@ -284,6 +285,13 @@ void lines_intersect_ut(void)
         assert(lines_intersect(P0, P0+2, P1, P1+2));
         assert(lines_intersect(P1, P1+2, P0, P0+2));
     }
+
+    P0[0] = 278; P0[1] = 157; P0[2] = 3; P0[3] = 38;
+    P1[0] = 85; P1[1] = 108; P1[2] = 402; P1[3] = 69;
+
+    assert(lines_intersect(P0, P0+2, P1, P1+2));
+    assert(lines_intersect(P1, P1+2, P0, P0+2));
+
     /* When they should not intersect */
     size_t n_total = 100000;
     size_t n_intersect = 0;
