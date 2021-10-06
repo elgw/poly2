@@ -2,8 +2,9 @@
 
 ![Screenshot from 2021-10-06](2021-10-06.png)
 
-A tiny library for feature extraction and manipulation of 2D polygons.
+A tiny library for feature extraction of 2D polygons with focus on performance.
 
+ - Processes > 2 M small polygons per second on a single thread (Ryzen 3800X).
  - As you would expect it is only for simple polygons,
    i.e., with no crossing edges.
  - Moments are calculated using Greens theorem, and hence the orientation
@@ -12,6 +13,7 @@ A tiny library for feature extraction and manipulation of 2D polygons.
    with `poly_reverse` if needed.
 
 ## Dependencies:
+Only tested under 64-bit Ubuntu 21.04.
 For basic measurements, no special dependencies. For interpolation:
 gsl, for visualizations: libcairo, and libpango.
 
