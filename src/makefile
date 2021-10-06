@@ -7,6 +7,10 @@ ldflags_dbg=-lm $(ldflags_ext)
 cflags=-Wall -pedantic -std=c99 $(cflags_ext) -O3 -march=native -DNDEBUG -fno-math-errno
 ldflags=-lm $(ldflags_ext) -flto
 
+# Define what lua version to use, note Löve only supports 5.1
+# Supported options lua51, lua53
+cflags_lua=$(cflags) -Dlua51
+
 all: poly poly_ut poly_bench
 
 poly_ut: poly_ut.c poly.c poly.h
@@ -22,6 +26,6 @@ poly: poly.c
 	gcc -c $(cflags) poly.c
 
 lpoly.so: poly.c poly_lua.c
-	gcc -c $(cflags) poly.c     -fPIC -g -Wall -o fpoly.o
-	gcc -c $(cflags) poly_lua.c -fPIC -g -Wall -o flpoly.o
+	gcc -c $(cflags_lua) poly.c -fPIC -g -Wall -o fpoly.o
+	gcc -c $(cflags_lua) poly_lua.c -fPIC -g -Wall -o flpoly.o
 	gcc --shared fpoly.o flpoly.o $(ldflags) -o lpoly.so

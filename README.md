@@ -8,6 +8,12 @@ Moments are calculated using Greens theorem, and hence the orientation is import
 The orientation can be checked with `poly_vertex_order` and changed with `poly_reverse`
 if needed.
 
+If [Löve](https://love2d.org/) is installed, there is a small test program in `src/love/` that can be run with.
+``` shell
+love src/love/
+```
+Note, the library has to be build for Lua 5.1 in order for that to work.
+
 ## Dependencies:
 For basic measurements, no special dependencies. For interpolation:
 gsl, for visualizations: libcairo, and libpango.
