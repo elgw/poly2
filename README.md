@@ -29,9 +29,9 @@ love love/is_simple/
 ```
 
 ## Relevant references:
- * [https://en.wikipedia.org/wiki/Image_moment](https://en.wikipedia.org/wiki/Image_moment)
- * [https://stats.stackexchange.com/questions/415974/how-to-find-the-covariance-matrix-of-a-polygon](https://stats.stackexchange.com/questions/415974/how-to-find-the-covariance-matrix-of-a-polygon)
- * [https://maxgoldste.in/melkman/](Melkman's algorithm interactively)
+ * [Image moments](https://en.wikipedia.org/wiki/Image_moment)
+ * [How to find the covariance matrix of a polygon](https://stats.stackexchange.com/questions/415974/how-to-find-the-covariance-matrix-of-a-polygon)
+ * [Interactive demo of Melkman's algorithm](https://github.com/mgold/Melkmans-Algorithm-Visualized)
 
 ## To do
 See the separate [TODO](TODO.md).
