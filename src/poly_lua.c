@@ -107,9 +107,58 @@ static int l_poly_is_simple(lua_State *L) {
     }
 
 
+static int l_poly_measure(lua_State *L) {
+
+        /* We expect a table with 8 elements */
+        luaL_checktype(L, 1, LUA_TTABLE);
+#ifdef lua51
+        int npoints = lua_objlen(L, 1);
+#else
+        int npoints = luaL_len(L, 1);  /* get size of table */
+#endif
+
+        if (npoints < 6) { /* Wrong number of points */
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Too few points, requires at least 3");
+            return 2; /* number of results */
+        }
+        if (npoints % 2 != 0) {
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Need an even number of coordinates");
+            return 2; /* number of results */
+        }
+
+        /* Get the values */
+        double * coords = malloc(npoints*sizeof(double));
+        // lua_isnumber()
+        for(int kk = 1; kk<=npoints; kk++)
+        {
+            // Push on the stack
+            lua_rawgeti (L, 1, kk);
+            double data = lua_tonumber(L, -1);
+            //printf("%f\n", data);
+            coords[kk-1] = data;
+            // Need to pop?
+        }
+
+        poly_props * props = poly_measure(coords, npoints/2);
+        free(coords);
+        char * bp;
+        size_t size;
+        FILE * stream = open_memstream(&bp, &size);
+        poly_props_print(stream, props);
+        fflush(stream);
+        fclose(stream);
+        lua_pushstring (L, bp);
+        poly_props_free(&props);
+        return 1;
+    }
+
+
 static const struct luaL_Reg lpoly [] = {
     {"lines_intersect", l_lines_intersect},
     {"poly_is_simple", l_poly_is_simple},
+    {"poly_measure", l_poly_measure},
     {NULL, NULL}};
 
 int luaopen_lpoly(lua_State *L) {

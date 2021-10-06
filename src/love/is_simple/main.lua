@@ -10,13 +10,27 @@ print(_VERSION)
 w = 600 -- width of screen
 
 points = {}
+dragging = 0
+updatepos = 0
 
 love.draw = function()
 
+   love.graphics.print(tostring(#points/2) .. " points", 10, 10)
+
+   simple = 0
    if lpoly.poly_is_simple(points) == 1 then
+      simple = 1
       love.graphics.setColor(0,1,0)
+      love.graphics.print("Simple: YES", 10, 40)
    else
       love.graphics.setColor(1,0,0)
+      love.graphics.print("Simple: NO", 10, 40)
+   end
+
+
+   if simple==1 then
+      properties = lpoly.poly_measure(points)
+      love.graphics.print(properties, 10, 70)
    end
 
    npoints = #points/2
@@ -39,8 +53,9 @@ end
 
 
 love.update = function(dt)
-   if love.mouse.isDown(2) then
-      love.event.quit()
+   if dragging==1 then
+      points[updatepos*2-1] = love.mouse.getX()
+      points[updatepos*2] = love.mouse.getY()
    end
 end
 
@@ -50,10 +65,29 @@ function love.mousepressed(x, y, button, istouch)
       table.insert(points, y)
    end
    if button == 2 then
-      -- remove closest points or something ...
+      dragging = 1
+      updatepos = 1;
+      -- find closest point
+      npoints = #points/2
+      mindist = w+w
+      for i=1,npoints do
+         dx = (x-points[2*i-1])
+         dy = (y-points[2*i])
+         dist = dx*dx + dy*dy
+         if dist<mindist then
+            mindist = dist
+            updatepos = i
+         end
+      end
+      -- print("Updatepos=" .. tostring(updatepos))
    end
 end
 
+function love.mousereleased(x,y,button)
+   if button == 2 then
+      dragging = 0
+   end
+end
 
 function love.keypressed(key)
    if key == "escape" then
