@@ -27,7 +27,7 @@ If [Löve](https://love2d.org/) is installed, there is a small test program in `
 ``` shell
 cd src
 make lpoly.so
-love love/is_simple/
+love love/demo
 ```
 
 ## Relevant references:
