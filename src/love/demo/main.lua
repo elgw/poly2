@@ -15,22 +15,22 @@ updatepos = 0
 
 love.draw = function()
 
-   love.graphics.print(tostring(#points/2) .. " points", 10, 10)
+
 
    simple = 0
    if lpoly.poly_is_simple(points) == 1 then
       simple = 1
       love.graphics.setColor(0,1,0)
-      love.graphics.print("Simple: YES", 10, 40)
    else
       love.graphics.setColor(1,0,0)
+      love.graphics.print(tostring(#points/2) .. " points", 10, 10)
       love.graphics.print("Simple: NO", 10, 40)
    end
 
 
    if simple==1 then
       properties = lpoly.poly_measure(points)
-      love.graphics.print(properties, 10, 70)
+      love.graphics.print(properties, 10, 10)
    end
 
    npoints = #points/2
