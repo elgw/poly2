@@ -13,6 +13,41 @@ points = {}
 dragging = 0
 updatepos = 0
 
+printpoints = function(tab)
+   -- print(type(tab))
+   if (type(tab) == 'number') then
+      io.write(tostring(" " .. tab))
+      return
+   end
+   if (type(tab) == 'table') then
+      io.write("[")
+      for k, v in pairs(tab) do
+         -- print("k=" .. k)
+         printpoints(tab[k])
+      end
+      io.write("]\n")
+   end
+   end
+
+drawhull = function(hull)
+   printpoints(hull)
+   love.graphics.setColor(.5,.5,.5)
+   npoints = #hull
+   print("Hull size: " .. tostring(npoints))
+   if npoints > 2 then
+      for i=1,npoints-1 do
+         p1 = hull[i]
+         p2 = hull[i+1]
+         line = {p1[1], p1[2], p2[1], p2[2]}
+         love.graphics.line(line)
+      end
+      p1 = hull[npoints]
+      p2 = hull[1]
+      line = {p1[1], p1[2], p2[1], p2[2]}
+      love.graphics.line(line)
+   end
+end
+
 love.draw = function()
 
 
@@ -20,9 +55,7 @@ love.draw = function()
    simple = 0
    if lpoly.poly_is_simple(points) == 1 then
       simple = 1
-      love.graphics.setColor(0,1,0)
    else
-      love.graphics.setColor(1,0,0)
       love.graphics.print(tostring(#points/2) .. " points", 10, 10)
       love.graphics.print("Simple: NO", 10, 40)
    end
@@ -31,6 +64,18 @@ love.draw = function()
    if simple==1 then
       properties = lpoly.poly_measure(points)
       love.graphics.print(properties, 10, 10)
+      hull = lpoly.poly_hull(points)
+      drawhull(hull)
+      com = lpoly.poly_com(points)
+      love.graphics.setColor(1,0,1)
+      love.graphics.setPointSize(2)
+      love.graphics.points(com[1], com[2])
+   end
+
+   if simple == 1 then
+      love.graphics.setColor(0,1,0)
+   else
+      love.graphics.setColor(1,0,0)
    end
 
    npoints = #points/2

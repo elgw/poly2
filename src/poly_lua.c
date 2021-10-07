@@ -106,6 +106,113 @@ static int l_poly_is_simple(lua_State *L) {
         return 1;
     }
 
+static int l_poly_chull(lua_State *L) {
+
+        /* We expect a table with 8 elements */
+        luaL_checktype(L, 1, LUA_TTABLE);
+#ifdef lua51
+        int npoints = lua_objlen(L, 1);
+#else
+        int npoints = luaL_len(L, 1);  /* get size of table */
+#endif
+
+        if (npoints < 6) { /* Wrong number of points */
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Too few points, requires at least 3");
+            return 2; /* number of results */
+        }
+        if (npoints % 2 != 0) {
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Need an even number of coordinates");
+            return 2; /* number of results */
+        }
+
+        /* Get the values */
+        double * coords = malloc(npoints*sizeof(double));
+        // lua_isnumber()
+        for(int kk = 1; kk<=npoints; kk++)
+        {
+            // Push on the stack
+            lua_rawgeti (L, 1, kk);
+            double data = lua_tonumber(L, -1);
+            //printf("%f\n", data);
+            coords[kk-1] = data;
+            // Need to pop?
+        }
+
+        int nhull = 0;
+        double * hull = poly_hull(coords, npoints/2, &nhull);
+        free(coords);
+
+        lua_newtable(L);
+
+        for (int i = 0; i < nhull; i++) {
+            lua_newtable(L);
+            lua_pushnumber(L, hull[2*i]);
+            lua_rawseti(L, -2, 1);
+            lua_pushnumber(L, hull[2*i+1]);
+            lua_rawseti(L, -2, 2);
+
+            lua_rawseti(L, -2, i+1);
+        }
+
+        if(hull != NULL)
+        {
+            free(hull);
+        }
+        return 1;
+    }
+
+static int l_poly_com(lua_State *L) {
+
+        /* We expect a table with 8 elements */
+        luaL_checktype(L, 1, LUA_TTABLE);
+#ifdef lua51
+        int npoints = lua_objlen(L, 1);
+#else
+        int npoints = luaL_len(L, 1);  /* get size of table */
+#endif
+
+        if (npoints < 6) { /* Wrong number of points */
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Too few points, requires at least 3");
+            return 2; /* number of results */
+        }
+        if (npoints % 2 != 0) {
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Need an even number of coordinates");
+            return 2; /* number of results */
+        }
+
+        /* Get the values */
+        double * coords = malloc(npoints*sizeof(double));
+        // lua_isnumber()
+        for(int kk = 1; kk<=npoints; kk++)
+        {
+            // Push on the stack
+            lua_rawgeti (L, 1, kk);
+            double data = lua_tonumber(L, -1);
+            //printf("%f\n", data);
+            coords[kk-1] = data;
+            // Need to pop?
+        }
+
+
+        double * com = poly_com(coords, npoints/2);
+        free(coords);
+        if(com == NULL)
+            return 0;
+
+            lua_newtable(L);
+            lua_pushnumber(L, com[0]);
+            lua_rawseti(L, -2, 1);
+            lua_pushnumber(L, com[1]);
+            lua_rawseti(L, -2, 2);
+
+            free(com);
+        return 1;
+    }
+
 
 static int l_poly_measure(lua_State *L) {
 
@@ -155,10 +262,57 @@ static int l_poly_measure(lua_State *L) {
     }
 
 
+/* Return a table with all measurements */
+static int l_poly_measure2(lua_State *L) {
+
+        /* We expect a table with 8 elements */
+        luaL_checktype(L, 1, LUA_TTABLE);
+#ifdef lua51
+        int npoints = lua_objlen(L, 1);
+#else
+        int npoints = luaL_len(L, 1);  /* get size of table */
+#endif
+
+        if (npoints < 6) { /* Wrong number of points */
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Too few points, requires at least 3");
+            return 2; /* number of results */
+        }
+        if (npoints % 2 != 0) {
+            lua_pushnil(L); /* return nil... */
+            lua_pushstring(L, "Need an even number of coordinates");
+            return 2; /* number of results */
+        }
+
+        /* Get the values */
+        double * coords = malloc(npoints*sizeof(double));
+        // lua_isnumber()
+        for(int kk = 1; kk<=npoints; kk++)
+        {
+            // Push on the stack
+            lua_rawgeti (L, 1, kk);
+            double data = lua_tonumber(L, -1);
+            //printf("%f\n", data);
+            coords[kk-1] = data;
+            // Need to pop?
+        }
+
+        poly_props * props = poly_measure(coords, npoints/2);
+        free(coords);
+        // TODO: construct table from all measurements and return
+
+        poly_props_free(&props);
+        return 1;
+    }
+
+
 static const struct luaL_Reg lpoly [] = {
     {"lines_intersect", l_lines_intersect},
     {"poly_is_simple", l_poly_is_simple},
     {"poly_measure", l_poly_measure},
+    {"poly_measure2", l_poly_measure2},
+    {"poly_hull", l_poly_chull},
+    {"poly_com", l_poly_com},
     {NULL, NULL}};
 
 int luaopen_lpoly(lua_State *L) {
