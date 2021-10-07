@@ -1,8 +1,8 @@
 #include "poly.h"
 
-//// Forward declarations for non-exported functions
+/* Forward declarations for non-exported functions */
 
-//Cubic spline interpolation of closed curve
+/* Cubic spline interpolation of closed curve */
 static double * cbspline(const double * y, int N, int f, int * np);
 static double * vec_interlace(const double * A, double * B, size_t N);
 static double * vec_deinterlace(const double * V, int stride, size_t N);
@@ -221,7 +221,7 @@ poly_props * poly_measure(const double * P, const int n)
     return props;
 }
 
-// Multiply by the value v
+
 void poly_mult(double * P, int n, double vx, double vy)
 {
     for(int kk = 0; kk<n; kk++)
@@ -230,6 +230,7 @@ void poly_mult(double * P, int n, double vx, double vy)
         P[2*kk+1] *= vy;
     }
 }
+
 
 void poly_rotate(double * P, int n , double x0, double y0, const double theta)
 {
@@ -252,6 +253,7 @@ void poly_rotate(double * P, int n , double x0, double y0, const double theta)
     }
 }
 
+
 void poly_translate(double * P, int n, double dx, double dy)
 {
     for(int kk = 0; kk<n; kk++)
@@ -270,9 +272,9 @@ static double * cbspline(const double * y, int N, int f, int * np)
 {
   np[0] = N*f;
 
-  // Solve the Toeplitz equation system. There are faster ways, see for example
-  // Numerical Experience with a Superfast Real Toeplitz Solver, Gregory S. Ammar and William B. Gragg
-  //
+  /* Solve the Toeplitz equation system. There are faster ways, see for example
+   * Numerical Experience with a Superfast Real Toeplitz Solver, Gregory S. Ammar and William B. Gragg
+   */
 
   gsl_vector * gdiag = gsl_vector_alloc(N);
   for(int kk = 0; kk<N; kk++)
@@ -371,15 +373,16 @@ void poly_print(FILE * fid, const double * P, int n)
 
 double poly_M10_term(const double * p, const double * q)
 {
-    // Centre of mass, contour integral between p and q
-    // Using Greens formula
-    // for x:
-    // dw = x dx dy
-    // w = -1/2 xy dx
+    /* Centre of mass, contour integral between p and q
+     * Using Greens formula
+     * for x:
+     * dw = x dx dy
+     * w = -1/2 xy dx
 
-    // for y
-    // dw = y dx dy
-    // w = -1/2 xy dy
+     * for y
+     * dw = y dx dy
+     * w = -1/2 xy dy
+     */
 
     double px = p[0];
     double py = p[1];
@@ -397,15 +400,16 @@ double poly_M10_term(const double * p, const double * q)
 
 double poly_M01_term(const double * p, const double * q)
 {
-    // Centre of mass, contour integral between p and q
-    // Using Greens formula
-    // for x:
-    // dw = x dx dy
-    // w = -1/2 xy dx
-
-    // for y
-    // dw = y dx dy
-    // w = -1/2 xy dy
+    /* Centre of mass, contour integral between p and q
+     * Using Greens formula
+     * for x:
+     * dw = x dx dy
+     * w = -1/2 xy dx
+     *
+     * for y
+     * dw = y dx dy
+     * w = -1/2 xy dy
+     */
 
     double px = p[0];
     double py = p[1];
@@ -423,11 +427,13 @@ double poly_M01_term(const double * p, const double * q)
 
 double poly_M20_term(const double * p, const double * q)
 {
-    // dP/dy = -x*x
-    // P = x*x*y/2
-    // 1/2 II x*x*y dx
-    // x = px + t*Dx
-    // y = py + t*Dy
+    /* dP/dy = -x*x
+     * P = x*x*y/2
+     * 1/2 II x*x*y dx
+     * x = px + t*Dx
+     * y = py + t*Dy
+     */
+
     double px = p[0];
     double py = p[1];
     double qx = q[0];
@@ -445,11 +451,13 @@ double poly_M20_term(const double * p, const double * q)
 
 double poly_M11_term(const double * p, const double * q)
 {
-    // dQ/dy = x*y
-    // Q = x*x*y/2
-    // 1/2 II x*x*y dy
-    // x = px + t*Dx
-    // y = py + t*Dy
+    /* dQ/dy = x*y
+     * Q = x*x*y/2
+     * 1/2 II x*x*y dy
+     * x = px + t*Dx
+     * y = py + t*Dy
+     */
+
     double px = p[0];
     double py = p[1];
     double qx = q[0];
@@ -467,11 +475,13 @@ double poly_M11_term(const double * p, const double * q)
 
 double poly_M02_term(const double * p, const double * q)
 {
-    // dQ/dx = y*y
-    // Q = x*y*y
-    // II x*y*y dy
-    // x = px + t*Dx
-    // y = py + t*Dy
+    /* dQ/dx = y*y
+     * Q = x*y*y
+     * II x*y*y dy
+     * x = px + t*Dx
+     * y = py + t*Dy
+     */
+
     double px = p[0];
     double py = p[1];
     double qx = q[0];
@@ -563,9 +573,10 @@ double * poly_com(const double * P, int n)
 
 double poly_M20(const double * P, int n)
 {
-    // Raw moment (2,0)
-    // Corresponding to integrating x^2 over the area
-    // dP/dy = -x*x, P = - x*x*y/2
+    /* Raw moment (2,0)
+     * Corresponding to integrating x^2 over the area
+     * dP/dy = -x*x, P = - x*x*y/2
+     */
 
     if(n < 3)
     {
@@ -588,7 +599,7 @@ double poly_M20(const double * P, int n)
 
 double poly_M11(const double * P, int n)
 {
-    // Raw moment (1,1)
+    /* Raw moment (1,1) */
 
     if(n < 3)
     {
@@ -612,7 +623,7 @@ double poly_M11(const double * P, int n)
 
 double poly_M02(const double * P, int n)
 {
-    // Raw moment (0,2)
+    /* Raw moment (0,2) */
 
     if(n < 3)
     {
@@ -636,9 +647,10 @@ double poly_M02(const double * P, int n)
 double poly_area_rourke(const double * P, int n)
 {
 
-    // Rourke, Eq. 1.14
-    // What we get by Greens formula in poly_area_green is more efficient
-    // [Rourke] Joseph O'Rourke, Computational Geometry in C, Second Edition
+    /* Rourke, Eq. 1.14
+     * What we get by Greens formula in poly_area_green is more efficient
+     * [Rourke] Joseph O'Rourke, Computational Geometry in C, Second Edition
+     */
 
     if(n<3)
     {
@@ -664,7 +676,7 @@ double poly_M00_term(const double * p, const double * q)
 
 double poly_M00(const double * P, int n)
 {
-    // From Greens formula
+    /* From Greens formula */
     if(n<3)
     {
         return 0;
@@ -773,8 +785,10 @@ double * poly_cov(const double * P, int n)
 
 static void eigenvector_sym_22(double a, double b, double c, double l, double * v0, double * v1)
 {
-    // Eigenvector to the matrix [a b; b c] corresponding
-    // to eigenvalue l
+    /* Eigenvector to the matrix [a b; b c] corresponding
+     * to eigenvalue l
+     */
+
     double q = pow(b, 2) + pow(a-l, 2);
     double r = pow(c-l, 2) + pow(b, 2);
 
@@ -792,8 +806,9 @@ static void eigenvector_sym_22(double a, double b, double c, double l, double * 
         v1[0] = -b/n;
         return;
     }
-// Fallback for eye(2)
-// Any vector is an eigenvector
+/* Fallback for eye(2)
+ * Any vector is an eigenvector
+ */
     v0[0] = 1;
     v1[0] = 0;
     return;
@@ -802,8 +817,9 @@ static void eigenvector_sym_22(double a, double b, double c, double l, double * 
 
 static void eigenvalue_sym_22(double a, double b, double c, double * l0, double * l1)
 {
-    // Eigenvalues to the matrix [a b; b c] corresponding
-    // l0 > l1 since q > 0
+    /* Eigenvalues to the matrix [a b; b c] corresponding
+     * l0 > l1 since q > 0
+     */
     double p = (a+c)/2.0;
     double q = 0.5*sqrt( pow(a-c, 2) + 4*pow(b, 2));
     l0[0] = p + q;
@@ -1135,9 +1151,10 @@ static void _poly_hull_insert(int * Q, int * b, int v)
 
 double * poly_hull(const double * P, int n, int * h)
 {
-    // Algorithm Hull from
-    // On-Line Construction of the Convex Hull of a Simple Polyline
-    // A. Melkman, Inf. Process. Lett., 1987 (25), pp. 11-12
+    /* Algorithm Hull from
+     * On-Line Construction of the Convex Hull of a Simple Polyline
+     * A. Melkman, Inf. Process. Lett., 1987 (25), pp. 11-12
+     */
 
     if(n<4)
     {
@@ -1145,13 +1162,13 @@ double * poly_hull(const double * P, int n, int * h)
         goto leave;
     }
 
-    // A dequeue implemented as a redundant array.
+    /* A dequeue implemented as a redundant array. */
     size_t nQ = 2*n;
     int * Q = malloc(nQ*sizeof(int));
     int b = n; // Index of bottom element
     int t = b-1; // Index of top element
 
-/// 1. -- initialization
+/* 1. -- initialization */
     if( _poly_hull_rcl(P, P+2, P+4) > 0)
     {
         _poly_hull_push(Q, &t, 0);
@@ -1165,30 +1182,32 @@ double * poly_hull(const double * P, int n, int * h)
     int idx = 3;
 
 
-    // TODO: Consider adding a counter to abort when too many
-    // iterations has passed.
+    /* TODO: Consider adding a counter to abort when too many
+     * iterations has passed.
+     */
 label2:
     //printf("n = %d, b = %d, t = %d, idx = %d\n", n, b, t, idx);
-    /// 2.
+
+/* 2. */
 
     while(! ( (_poly_hull_rcl(P+idx*2, P+Q[b]*2, P+Q[b+1]*2) < 0) ||
               (_poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) < 0)  ) )
     {
         idx++;
-        // "The algorithm halts when the input is exhausted"
+        /* "The algorithm halts when the input is exhausted" */
         if(idx >= n)
         {
             goto done;
         }
     }
 
-    /// 3.
+    /* 3. */
     while(!( _poly_hull_rcl(P+Q[t-1]*2, P+Q[t]*2, P+idx*2) > 0))
     {
         t--; // pop
         if(t - b < 2)
         {
-            // Needed for non-simple or wrongly oriented polygons
+            /* Needed for non-simple or wrongly oriented polygons */
             goto fail;
         }
         assert(t>b);
@@ -1201,7 +1220,7 @@ label2:
         b++; // remove
         if(t-b < 2)
         {
-            // Possibly needed for non-simple or wrongly oriented polygons
+            /* Possibly needed for non-simple or wrongly oriented polygons */
             goto fail;
         }
         assert(t>b);
@@ -1211,8 +1230,9 @@ label2:
     goto label2;
 
 done: ;
-    // Q[t] and Q[b] "will always refer to the same vertex"
-    // hence we copy only until Q[b-1]
+    /* Q[t] and Q[b] "will always refer to the same vertex"
+     * hence we copy only until Q[b-1]
+     */
     assert(Q[t] == Q[b]);
     int nH = t-b;
     double * H = malloc(nH*2*sizeof(double));
@@ -1270,9 +1290,10 @@ static void draw_poly(cairo_t * cr, double * X, double * Y, int n,
 void poly_to_svg(double * P, int n, char * filename)
 {
 
-    //// Settings
-    // Width and height does not matter much since
-    // it will be vector graphics.
+    /* Settings
+     * Width and height does not matter much since
+     * it will be vector graphics.
+     */
     int w = 1024;
     int h = 512;
     double padding = 10;
@@ -1289,13 +1310,13 @@ void poly_to_svg(double * P, int n, char * filename)
         bbx[1] += (wy-wx)/2;
     }
 
-    //// Initialization
+    /* Initialization */
     cairo_surface_t *surface;
     cairo_t *cr;
     surface = cairo_svg_surface_create(filename, w, h);
     cr = cairo_create(surface);
 
-    //// Background
+    /* Background */
     cairo_rectangle (cr, 0, 0, w/2, h);
     cairo_set_source_rgba (cr, 1, 1, 1, 1);
     cairo_fill(cr);
@@ -1303,7 +1324,7 @@ void poly_to_svg(double * P, int n, char * filename)
     cairo_set_source_rgba (cr, 0.7, 0.7, 0.7, 1);
     cairo_fill(cr);
 
-    //// Transform polygon points
+    /* Transform polygon points */
     double * X = malloc(n*sizeof(double));
     double * Y = malloc(n*sizeof(double));
     for(int kk = 0; kk<n; kk++)
@@ -1317,7 +1338,7 @@ void poly_to_svg(double * P, int n, char * filename)
     free(X);
     free(Y);
 
-    //// Draw wire-frame for convex hull
+    /* Draw wire-frame for convex hull */
     int nH = 0;
     double * H = poly_hull(P, n, &nH);
     if(0){
@@ -1348,7 +1369,7 @@ void poly_to_svg(double * P, int n, char * filename)
         printf("Could not calculate the convex hull\n");
     }
 
-    //// Perform the feature extraction
+    /* Perform the feature extraction */
     poly_props * props = poly_measure(P, n);
     char *bp;
     size_t size;
@@ -1357,7 +1378,7 @@ void poly_to_svg(double * P, int n, char * filename)
     fflush (stream);
     fclose(stream);
 
-    //// Draw major axis
+    /* Draw major axis */
     cairo_set_source_rgba(cr, .5, 0, .5, 1);
     cairo_set_line_width(cr, 2);
     cairo_move_to(cr, 0.75*w, 0.5*h);
@@ -1369,7 +1390,7 @@ void poly_to_svg(double * P, int n, char * filename)
     poly_props_free(&props);
 
     #if 1
-    //// Put some text
+    /* Put some text */
     PangoFontDescription* font_description = pango_font_description_new();
     pango_font_description_set_family(font_description, "Mono");
     pango_font_description_set_weight(font_description, PANGO_WEIGHT_BOLD);

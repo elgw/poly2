@@ -1,12 +1,18 @@
--- For the Löve game engine, run with
--- & love .
---
--- Note that love is built using an old version of lua, see the _VERSION string
+-- Small demo to show the measurements 'live'
+
+
+if _VERSION ~= "Lua 5.1" then
+   print("_VERSION = " .. _VERSION)
+   print("Expected 'Lua 5.1'")
+end
 
 lpoly = require "lpoly"
 math = require "math"
 
-print(_VERSION)
+fontfile = 'LiberationMono-Regular.ttf';
+font1 = love.graphics.newFont(fontfile, 14)
+font2 = love.graphics.newFont(fontfile, 20)
+love.graphics.setFont(font1)
 
 w = 600 -- width of screen
 
@@ -31,9 +37,10 @@ printpoints = function(tab)
    end
 
 drawhull = function(hull)
-   -- printpoints(hull)
+   -- Draw points from a nested structures like {{x0, y0}, {x1, y1}, ... }
    love.graphics.setColor(.5,.5,.5)
    npoints = #hull
+
    -- print("Hull size: " .. tostring(npoints))
    if npoints > 2 then
       for i=1,npoints-1 do
@@ -50,6 +57,10 @@ drawhull = function(hull)
 end
 
 drawcov = function(com, cov)
+   -- Visualize the covariance matrix as
+   -- an ellipsoid
+
+   -- normalize by largest eigenvalue
    det = cov[1]*cov[3]-cov[2]*cov[2]
    tr = cov[1] + cov[3]
    l1 = math.sqrt(det)+tr/2;
@@ -60,7 +71,6 @@ drawcov = function(com, cov)
       y = x0*cov[2] + y0*cov[3]
       x = x/l1*50
       y = y/l1*50
-      -- love.graphics.points(com[1]+x, com[2]+y)
       if i > 0 then
          love.graphics.line(com[1]+x, com[2]+y, xold, yold)
       end
@@ -69,7 +79,36 @@ drawcov = function(com, cov)
    end
 end
 
+drawpoly = function(points)
+   -- draw a polygon stored as {x0, y0, x1, y1, ...}
+   npoints = #points/2
+   if npoints > 2 then
+      for i=1,npoints-1 do
+         line = {points[2*i-1], points[2*i], points[2*i+1], points[2*i+2]}
+         love.graphics.line(line)
+      end
+      line = {points[npoints*2-1], points[npoints*2], points[1], points[2]}
+      love.graphics.line(line)
+   end
+   love.graphics.setColor(1,1,1)
+   love.graphics.setPointSize(2)
+   for i = 1,npoints do
+      love.graphics.points(points[2*i-1], points[2*i])
+   end
+end
+
 love.draw = function()
+
+   npoints = #points
+   if npoints == 0 then
+      love.graphics.setFont(font2)
+      love.graphics.print("Instructions\n" ..
+                          "\n" ..
+                          " - left-click : append a new point\n" ..
+                          " - right-drag : move a point\n" ..
+                          " - ESC : quit", 0.4*w, 0.4*w)
+      love.graphics.setFont(font1)
+   end
 
    simple = 0
    if lpoly.poly_is_simple(points) == 1 then
@@ -92,7 +131,6 @@ love.draw = function()
       love.graphics.setPointSize(2)
       love.graphics.points(com[1], com[2])
       drawcov(com, props["COV"])
-
    end
 
    if simple == 1 then
@@ -101,22 +139,7 @@ love.draw = function()
       love.graphics.setColor(1,0,0)
    end
 
-   npoints = #points/2
-   if npoints > 2 then
-      for i=1,npoints-1 do
-         line = {points[2*i-1], points[2*i], points[2*i+1], points[2*i+2]}
-         love.graphics.line(line)
-      end
-      line = {points[npoints*2-1], points[npoints*2], points[1], points[2]}
-      love.graphics.line(line)
-   end
-   love.graphics.setColor(1,1,1)
-   love.graphics.setPointSize(2)
-   for i = 1,npoints do
-      love.graphics.points(points[2*i-1], points[2*i])
-   end
-
-   -- i = lpoly.lines_intersect(c)
+   drawpoly(points)
 end
 
 
@@ -128,7 +151,7 @@ love.update = function(dt)
 end
 
 function love.mousepressed(x, y, button, istouch)
-   if button == 1 then -- Versions prior to 0.10.0 use the MouseConstant 'l'
+   if button == 1 then
       table.insert(points, x)
       table.insert(points, y)
    end

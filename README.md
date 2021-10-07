@@ -30,10 +30,16 @@ make lpoly.so
 love love/demo
 ```
 
+## To do or Maybe ...
+ - [ ] Tests!
+ - [ ] Clean up redundant calculations.
+ - [ ] Switch to CCW as the standard orientation?
+ - [ ] Reduce the number of calls to malloc/free.
+ - [ ] Polygon rasterization using the even-odd rule or nonzero winding number, see Rourke Section 7.4
+ - [ ] Minimal bounding box (oriented according to the principal directions).
+ - [ ] Smarter svg plotting with axis abstraction? Or just drop that part?
+
 ## Relevant references:
  * [Image moments](https://en.wikipedia.org/wiki/Image_moment)
  * [How to find the covariance matrix of a polygon](https://stats.stackexchange.com/questions/415974/how-to-find-the-covariance-matrix-of-a-polygon)
  * [Interactive demo of Melkman's algorithm](https://github.com/mgold/Melkmans-Algorithm-Visualized)
-
-## To do
-See the separate [TODO](TODO.md).

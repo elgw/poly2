@@ -1,11 +1,11 @@
-/* Polygon processing/measurements
-
-Polygons with n vertices are stored with x and y coordinates interlaced,
-i.e. x0, y0, x1, x2, ... typically denoted P
-
-Please see README.md for a gentle introduction.
-
-[sunday] Daniel Sunday, Practical Geometry Algorithms: with C++ Code, 979-8749449730
+/*
+*
+* Polygon measurements and some processing.
+*
+* Polygons with n vertices are stored with x and y coordinates interlaced,
+* i.e. x0, y0, x1, x2, ... typically denoted P.
+*
+* Please see README.md for a gentle introduction.
 */
 
 #ifndef __poly_h__
@@ -18,8 +18,11 @@ Please see README.md for a gentle introduction.
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+
+/* for poly_cbinterp */
 #include <gsl/gsl_linalg.h>
 
+/* for poly_to_svg */
 #include <cairo.h>
 #include <cairo-svg.h>
 #include <fontconfig/fontconfig.h>
@@ -56,7 +59,7 @@ typedef struct{
  * MEASUREMENTS
  */
 
-/* "High Level" interface, i.e. measure most stuff in one go
+/* The "High Level" interface. Measure most stuff in one go
    P is the vertices, (x0, y0), (x1, y1), ...
    n is the number of vertices
  */
@@ -64,6 +67,8 @@ poly_props * poly_measure(const double * P, int n);
 
 void poly_props_free(poly_props**);
 void poly_props_print(FILE * fout, poly_props * props);
+
+/* Interface for specific measurements below */
 
 /* Vertex order: we only support clockwise
  * The measurement can only be trusted for simple polygons.
