@@ -1,6 +1,6 @@
 # poly2
 
-![Screenshot from 2021-10-06](2021-10-06.png)
+![Screenshot](screenshot.png)
 
 A tiny library for feature extraction of 2D polygons with focus on performance.
 
