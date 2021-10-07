@@ -300,6 +300,65 @@ static int l_poly_measure2(lua_State *L) {
         poly_props * props = poly_measure(coords, npoints/2);
         free(coords);
         // TODO: construct table from all measurements and return
+        lua_createtable(L, 0, 11);
+
+        lua_pushstring(L, "area"); // 1
+        lua_pushnumber(L, props->Area);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushstring(L, "convexArea"); // 2
+        lua_pushnumber(L, props->ConvexArea);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushstring(L, "circularity"); // 3
+        lua_pushnumber(L, props->Circularity);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushstring(L, "equivDiameter"); // 4
+        lua_pushnumber(L, props->EquivDiameter);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushstring(L, "solidity"); // 5
+        lua_pushnumber(L, props->Solidity);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushstring(L, "orientation"); // 6
+        lua_pushnumber(L, props->Orientation);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushstring(L, "majorAxisLength"); // 7
+        lua_pushnumber(L, props->MajorAxisLength);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushstring(L, "minorAxisLength"); // 8
+        lua_pushnumber(L, props->MinorAxisLength);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
+
+        lua_pushliteral(L, "Centroid"); // 9
+        lua_newtable(L);
+        {
+            lua_pushnumber(L, props->Centroid[0]);
+            lua_rawseti(L, -2, 1);
+            lua_pushnumber(L, props->Centroid[1]);
+            lua_rawseti(L, -2, 2);
+        }
+        lua_settable(L, -3);
+
+        lua_pushliteral(L, "COV"); // 10
+        lua_newtable(L);
+        {
+            lua_pushnumber(L, props->COV[0]);
+            lua_rawseti(L, -2, 1);
+            lua_pushnumber(L, props->COV[1]);
+            lua_rawseti(L, -2, 2);
+            lua_pushnumber(L, props->COV[2]);
+            lua_rawseti(L, -2, 3);
+        }
+        lua_settable(L, -3);
+
+        lua_pushstring(L, "perimenter"); // 11
+        lua_pushnumber(L, props->Perimeter);
+        lua_settable(L, -3);  /* 3rd element from the stack top */
 
         poly_props_free(&props);
         return 1;

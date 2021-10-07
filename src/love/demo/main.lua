@@ -4,6 +4,7 @@
 -- Note that love is built using an old version of lua, see the _VERSION string
 
 lpoly = require "lpoly"
+math = require "math"
 
 print(_VERSION)
 
@@ -30,10 +31,10 @@ printpoints = function(tab)
    end
 
 drawhull = function(hull)
-   printpoints(hull)
+   -- printpoints(hull)
    love.graphics.setColor(.5,.5,.5)
    npoints = #hull
-   print("Hull size: " .. tostring(npoints))
+   -- print("Hull size: " .. tostring(npoints))
    if npoints > 2 then
       for i=1,npoints-1 do
          p1 = hull[i]
@@ -48,9 +49,27 @@ drawhull = function(hull)
    end
 end
 
+drawcov = function(com, cov)
+   det = cov[1]*cov[3]-cov[2]*cov[2]
+   tr = cov[1] + cov[3]
+   l1 = math.sqrt(det)+tr/2;
+   for i = -0.1, 2*math.pi+0.1, 0.1 do
+      x0 = math.cos(i)
+      y0 = math.sin(i)
+      x = x0*cov[1] + y0*cov[2]
+      y = x0*cov[2] + y0*cov[3]
+      x = x/l1*50
+      y = y/l1*50
+      -- love.graphics.points(com[1]+x, com[2]+y)
+      if i > 0 then
+         love.graphics.line(com[1]+x, com[2]+y, xold, yold)
+      end
+      xold = com[1] + x
+      yold = com[2]+y
+   end
+end
+
 love.draw = function()
-
-
 
    simple = 0
    if lpoly.poly_is_simple(points) == 1 then
@@ -63,13 +82,17 @@ love.draw = function()
 
    if simple==1 then
       properties = lpoly.poly_measure(points)
+      props = lpoly.poly_measure2(points)
       love.graphics.print(properties, 10, 10)
       hull = lpoly.poly_hull(points)
       drawhull(hull)
+
       com = lpoly.poly_com(points)
       love.graphics.setColor(1,0,1)
       love.graphics.setPointSize(2)
       love.graphics.points(com[1], com[2])
+      drawcov(com, props["COV"])
+
    end
 
    if simple == 1 then
